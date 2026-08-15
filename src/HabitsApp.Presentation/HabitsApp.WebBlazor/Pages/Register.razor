@@ -1,0 +1,62 @@
+@page "/register"
+@attribute [AllowAnonymous]
+
+<PageTitle>Register</PageTitle>
+
+<div class="auth-page">
+    <div class="glass-card glass-card--lift auth-card">
+        <h1 class="headline-md auth-card__title">Create account</h1>
+
+        <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="stack-md">
+                <div class="field-grid">
+                    <div>
+                        <label for="firstName" class="field-label">First name</label>
+                        <InputText id="firstName" @bind-Value="Model.FirstName" class="field" />
+                    </div>
+                    <div>
+                        <label for="lastName" class="field-label">Last name</label>
+                        <InputText id="lastName" @bind-Value="Model.LastName" class="field" />
+                    </div>
+                </div>
+
+                <div>
+                    <label for="email" class="field-label">Email</label>
+                    <InputText id="email" @bind-Value="Model.Email" class="field" placeholder="you@example.com" />
+                    <ValidationMessage For="() => Model.Email" class="validation-message" />
+                </div>
+
+                <div>
+                    <label for="password" class="field-label">Password</label>
+                    <InputText id="password" type="password" @bind-Value="Model.Password" class="field" placeholder="••••••••" />
+                    <ValidationMessage For="() => Model.Password" class="validation-message" />
+                    <p class="field-hint">At least 8 characters, one digit, and one uppercase letter.</p>
+                </div>
+
+                <div>
+                    <label for="confirmPassword" class="field-label">Confirm password</label>
+                    <InputText id="confirmPassword" type="password" @bind-Value="Model.ConfirmPassword" class="field" placeholder="••••••••" />
+                    <ValidationMessage For="() => Model.ConfirmPassword" class="validation-message" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="auth-card__error">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <button type="submit" disabled="@IsSubmitting" class="btn btn-primary btn-block">
+                    @(IsSubmitting ? "Creating account…" : "Create account")
+                </button>
+            </div>
+        </EditForm>
+
+        <p class="auth-card__footer">
+            Already have an account?
+            <NavLink href="login">Sign in</NavLink>
+        </p>
+    </div>
+</div>

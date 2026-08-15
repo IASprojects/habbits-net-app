@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/HabitsApp.Core/">
+    <Project Path="src/HabitsApp.Core/HabitsApp.Application/HabitsApp.Application.csproj" />
+    <Project Path="src/HabitsApp.Core/HabitsApp.Domain/HabitsApp.Domain.csproj" />
+    <Project Path="src/HabitsApp.Core/HabitsApp.Infrastructure/HabitsApp.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/HabitsApp.Presentation/">
+    <Project Path="src/HabitsApp.Presentation/HabitsApp.Api/HabitsApp.Api.csproj" />
+    <Project Path="src/HabitsApp.Presentation/HabitsApp.WebBlazor/HabitsApp.WebBlazor.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HabitsApp.Application.Tests/HabitsApp.Application.Tests.csproj" />
+    <Project Path="tests/HabitsApp.Domain.Tests/HabitsApp.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

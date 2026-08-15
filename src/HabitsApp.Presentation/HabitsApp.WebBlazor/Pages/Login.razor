@@ -1,0 +1,44 @@
+@page "/login"
+@attribute [AllowAnonymous]
+
+<PageTitle>Login</PageTitle>
+
+<div class="auth-page">
+    <div class="glass-card glass-card--lift auth-card">
+        <h1 class="headline-md auth-card__title">Sign in</h1>
+
+        <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="stack-md">
+                <div>
+                    <label for="email" class="field-label">Email</label>
+                    <InputText id="email" @bind-Value="Model.Email" class="field" placeholder="you@example.com" />
+                    <ValidationMessage For="() => Model.Email" class="validation-message" />
+                </div>
+
+                <div>
+                    <label for="password" class="field-label">Password</label>
+                    <InputText id="password" type="password" @bind-Value="Model.Password" class="field" placeholder="••••••••" />
+                    <ValidationMessage For="() => Model.Password" class="validation-message" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="auth-card__error">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <button type="submit" disabled="@IsSubmitting" class="btn btn-primary btn-block">
+                    @(IsSubmitting ? "Signing in…" : "Sign in")
+                </button>
+            </div>
+        </EditForm>
+
+        <p class="auth-card__footer">
+            Don't have an account?
+            <NavLink href="register">Register</NavLink>
+        </p>
+    </div>
+</div>

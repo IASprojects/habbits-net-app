@@ -1,0 +1,57 @@
+## ==========================================
+## 1. .NET & Build Artifacts
+## ==========================================
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+out/
+publish/
+dist/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## ==========================================
+## 2. Visual Studio & IDEs
+## ==========================================
+.vs/
+.idea/
+*.sln.docstates
+*.sln.iml
+
+# VS Code / Cursor (ignora el estado personal, conserva lanzadores del equipo)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## ==========================================
+## 3. Secretos, Credenciales y Entorno
+## ==========================================
+# Archivos de entorno y variables locales
+*.env
+*.env.local
+*.env.development
+*.env.test
+
+# Certificados y claves
+*.pfx
+*.p12
+*.pem
+*.key
+
+# Configuraciones locales con credenciales (opcional si usas User Secrets)
+appsettings.Local.json
+appsettings.Development.json
+
+## ==========================================
+## 4. Archivos Temporales y Borradores
+## ==========================================
+DRAFT.md
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

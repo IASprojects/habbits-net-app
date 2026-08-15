@@ -1,0 +1,216 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>HabitsApp - Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#1000a9",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "outline-variant": "#3c4a42",
+                        "on-primary-container": "#00422b",
+                        "secondary-container": "#3131c0",
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#2b3545",
+                        "inverse-surface": "#d9e3f7",
+                        "error-container": "#93000a",
+                        "on-background": "#d9e3f7",
+                        "primary-container": "#10b981",
+                        "on-primary": "#003824",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-tint": "#4edea3",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-container-high": "#212a39",
+                        "on-tertiary-container": "#523200",
+                        "secondary-fixed": "#e1e0ff",
+                        "surface-dim": "#091422",
+                        "on-surface": "#d9e3f7",
+                        "surface-container": "#16202f",
+                        "on-tertiary": "#472a00",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-primary-fixed": "#002113",
+                        "primary-fixed": "#6ffbbe",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "tertiary-container": "#e29100",
+                        "on-secondary-fixed": "#07006c",
+                        "inverse-on-surface": "#273140",
+                        "primary-fixed-dim": "#4edea3",
+                        "surface-container-low": "#121c2a",
+                        "primary": "#4edea3",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "background": "#091422",
+                        "tertiary": "#ffb95f",
+                        "on-error": "#690005",
+                        "outline": "#86948a",
+                        "on-surface-variant": "#bbcabf",
+                        "surface": "#091422",
+                        "surface-variant": "#2b3545",
+                        "on-secondary-fixed-variant": "#2f2ebe",
+                        "surface-container-lowest": "#050e1c",
+                        "on-secondary-container": "#b0b2ff",
+                        "secondary": "#c0c1ff",
+                        "inverse-primary": "#006c49",
+                        "surface-bright": "#303a49"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "unit": "8px",
+                        "container-padding-desktop": "40px",
+                        "container-padding-mobile": "20px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-pane {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)) 1;
+            /* Workaround for border-image with rounded corners */
+            position: relative;
+        }
+        .glass-pane::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.02));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(78, 222, 163, 0.08) 0%, rgba(9, 20, 34, 0) 70%);
+            top: -100px;
+            left: -100px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Input override for transparent background */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active{
+            -webkit-box-shadow: 0 0 0 30px #091422 inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex items-center justify-center p-container-padding-mobile md:p-container-padding-desktop relative overflow-hidden font-body-md"><div class="absolute top-stack-md right-stack-md z-20 flex items-center gap-2 px-3 py-1 rounded-full glass-pane border border-primary/30 backdrop-blur-md">
+    <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+    </span>
+    <span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">Server Online</span>
+</div>
+<div class="ambient-glow"></div>
+<main class="w-full max-w-[440px] z-10 glass-pane rounded-xl p-stack-md md:p-stack-lg flex flex-col shadow-2xl shadow-black/50">
+<!-- Header -->
+<header class="text-center mb-stack-lg">
+<h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-primary tracking-tighter mb-unit">HabitsApp</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Small steps, lasting change.</p>
+</header>
+<!-- Form -->
+<form class="flex flex-col gap-stack-md" onsubmit="event.preventDefault();">
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary text-on-surface font-body-lg text-body-lg py-2 px-0 transition-colors placeholder-transparent peer" id="email" placeholder="Email address" required="" type="email">
+<label class="absolute left-0 top-2 font-body-lg text-body-lg text-on-surface-variant transition-all peer-focus:-top-5 peer-focus:text-label-caps peer-focus:font-label-caps peer-focus:text-primary peer-valid:-top-5 peer-valid:text-label-caps peer-valid:font-label-caps cursor-text" for="email">
+                    Email address
+                </label>
+</div>
+<div class="relative group mt-unit">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant focus:ring-0 focus:border-primary text-on-surface font-body-lg text-body-lg py-2 px-0 transition-colors placeholder-transparent peer" id="password" placeholder="Password" required="" type="password">
+<label class="absolute left-0 top-2 font-body-lg text-body-lg text-on-surface-variant transition-all peer-focus:-top-5 peer-focus:text-label-caps peer-focus:font-label-caps peer-focus:text-primary peer-valid:-top-5 peer-valid:text-label-caps peer-valid:font-label-caps cursor-text" for="password">
+                    Password
+                </label>
+<button class="absolute right-0 top-2 text-on-surface-variant hover:text-primary transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">visibility</span>
+</button>
+</div>
+<div class="flex justify-end mt-[-8px]">
+
+</div>
+<button class="mt-stack-sm w-full bg-primary text-on-primary font-headline-md text-headline-md py-4 rounded-xl hover:bg-primary-fixed transition-colors flex justify-center items-center gap-2 group" type="submit">
+                Sign In
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</form>
+<!-- Divider -->
+<div class="flex items-center gap-gutter my-stack-md">
+<div class="flex-1 h-px bg-outline-variant/50"></div>
+
+<div class="flex-1 h-px bg-outline-variant/50"></div>
+</div>
+<!-- Social Auth -->
+<div class="flex flex-col sm:flex-row gap-gutter">
+
+
+</div>
+<!-- Register Link -->
+<div class="mt-stack-lg text-center pt-stack-md border-t border-white/5">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Don't have an account? 
+                <a class="text-primary hover:text-primary-fixed-dim font-headline-md text-[16px] transition-colors ml-1" href="#">Register</a>
+</p>
+</div>
+</main>
+<script>
+        // Simple password toggle logic
+        document.querySelector('button[type="button"]').addEventListener('click', function() {
+            const input = document.getElementById('password');
+            const icon = this.querySelector('.material-symbols-outlined');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        });
+    </script>
+</body></html>
