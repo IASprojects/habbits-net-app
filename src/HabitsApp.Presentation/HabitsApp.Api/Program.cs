@@ -1,8 +1,10 @@
 using HabitsApp.Api.Services;
 using HabitsApp.Application.Contracts;
 using HabitsApp.Application.Contracts.Auth;
+using HabitsApp.Application.Contracts.Habits;
 using HabitsApp.Application.Services;
 using HabitsApp.Domain.Entities;
+using HabitsApp.Infrastructure.Abstractions;
 using HabitsApp.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -20,6 +22,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IDatabaseHealthService, DatabaseHealthService>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IHabitService, HabitService>();
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -79,6 +85,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Enable .NET 10 native Minimal API validation (data annotations)
 builder.Services.AddValidation();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
 builder.Services.AddProblemDetails();
 
@@ -189,6 +198,77 @@ app.MapGet("/api/health", async (IDatabaseHealthService healthService) =>
         TimestampUtc = DateTime.UtcNow.ToString("o"),
         LatencyMs = latency
     });
+});
+
+static Guid GetUserId(ClaimsPrincipal principal)
+{
+    var sub = principal.FindFirstValue("sub");
+    return sub is not null && Guid.TryParse(sub, out var userId) ? userId : Guid.Empty;
+}
+
+var habitsGroup = app.MapGroup("/api/habits")
+    .RequireAuthorization();
+
+habitsGroup.MapGet("/", async (ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    var items = await habitService.GetDashboardAsync(GetUserId(principal), cancellationToken);
+    return Results.Ok(items);
+});
+
+habitsGroup.MapPost("/", async (CreateHabitDto dto, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    var result = await habitService.CreateAsync(GetUserId(principal), dto, cancellationToken);
+    if (result.Succeeded)
+    {
+        return Results.Created($"/api/habits/{result.Data!.Id}", result.Data);
+    }
+
+    return Results.Problem(
+        statusCode: result.StatusCode ?? StatusCodes.Status400BadRequest,
+        title: result.ErrorType,
+        detail: result.ErrorDetail);
+});
+
+habitsGroup.MapPut("/{id:guid}", async (Guid id, UpdateHabitDto dto, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    var result = await habitService.UpdateAsync(GetUserId(principal), id, dto, cancellationToken);
+    if (result.Succeeded)
+    {
+        return Results.Ok(result.Data);
+    }
+
+    return Results.Problem(
+        statusCode: result.StatusCode ?? StatusCodes.Status400BadRequest,
+        title: result.ErrorType,
+        detail: result.ErrorDetail);
+});
+
+habitsGroup.MapPost("/{id:guid}/quick-log", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    var result = await habitService.QuickLogAsync(GetUserId(principal), id, cancellationToken);
+    if (result.Succeeded)
+    {
+        return Results.Ok(result.Data);
+    }
+
+    return Results.Problem(
+        statusCode: result.StatusCode ?? StatusCodes.Status400BadRequest,
+        title: result.ErrorType,
+        detail: result.ErrorDetail);
+});
+
+habitsGroup.MapDelete("/{id:guid}", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    var result = await habitService.ArchiveAsync(GetUserId(principal), id, cancellationToken);
+    if (result.Succeeded)
+    {
+        return Results.NoContent();
+    }
+
+    return Results.Problem(
+        statusCode: result.StatusCode ?? StatusCodes.Status400BadRequest,
+        title: result.ErrorType,
+        detail: result.ErrorDetail);
 });
 
 app.Run();

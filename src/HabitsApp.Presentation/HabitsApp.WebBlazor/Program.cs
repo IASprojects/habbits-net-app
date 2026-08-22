@@ -27,5 +27,6 @@ builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("HabitsApp.ServerAPI"));
 
 builder.Services.AddScoped<IHealthService, HealthService>();
+builder.Services.AddScoped<IHabitService, HabitService>();
 
 await builder.Build().RunAsync();

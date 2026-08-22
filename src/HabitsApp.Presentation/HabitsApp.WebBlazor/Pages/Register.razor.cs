@@ -38,7 +38,7 @@ public partial class Register
             });
 
             await AuthStateProvider.LoginAsync(response);
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("/habits");
         }
         catch (ApiException ex)
         {

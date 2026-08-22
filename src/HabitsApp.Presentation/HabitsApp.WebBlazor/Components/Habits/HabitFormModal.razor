@@ -1,0 +1,71 @@
+@if (IsOpen)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal" @onclick:stopPropagation>
+            <div class="modal__head">
+                <h3 class="headline-md">@(Habit is null ? "New Habit" : "Edit Habit")</h3>
+                <button class="modal__close" title="Close" aria-label="Close" @onclick="Close">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <EditForm Model="@Form" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="modal__error">@ErrorMessage</div>
+                }
+
+                <div class="habit-form__field">
+                    <label class="field-label" for="habit-title">Title</label>
+                    <InputText id="habit-title" class="field" @bind-Value="Form.Title" placeholder="e.g. Morning meditation" />
+                    <ValidationMessage For="@(() => Form.Title)" />
+                </div>
+
+                <div class="habit-form__field">
+                    <label class="field-label" for="habit-description">Description</label>
+                    <InputText id="habit-description" class="field" @bind-Value="Form.Description" placeholder="Optional note" />
+                </div>
+
+                <div class="habit-form__field">
+                    <label class="field-label">Color</label>
+                    <div class="habit-form__color-options">
+                        @foreach (var color in Colors)
+                        {
+                            <button type="button"
+                                    class="habit-form__color @(Form.ColorHex == color ? "habit-form__color--selected" : "")"
+                                    style="background: @color;"
+                                    title="@color"
+                                    aria-label="@color"
+                                    @onclick="() => SelectColor(color)"></button>
+                        }
+                    </div>
+                </div>
+
+                <div class="habit-form__field">
+                    <label class="field-label">Frequency</label>
+                    <div class="habit-form__segmented">
+                        @foreach (var frequency in Frequencies)
+                        {
+                            <button type="button"
+                                    class="habit-form__segment @(Form.Frequency == frequency ? "habit-form__segment--selected" : "")"
+                                    @onclick="() => SelectFrequency(frequency)">@frequency</button>
+                        }
+                    </div>
+                </div>
+
+                <div class="habit-form__field">
+                    <label class="field-label" for="habit-target">Target per period</label>
+                    <InputNumber id="habit-target" class="field" @bind-Value="Form.TargetCount" />
+                    <ValidationMessage For="@(() => Form.TargetCount)" />
+                </div>
+
+                <div class="modal__footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsSaving">Cancel</button>
+                    <button type="submit" class="btn btn-primary" disabled="@IsSaving">@(IsSaving ? "Saving…" : "Save")</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}

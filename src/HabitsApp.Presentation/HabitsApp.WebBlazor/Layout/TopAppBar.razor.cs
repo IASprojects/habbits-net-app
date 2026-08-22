@@ -4,20 +4,14 @@ using Microsoft.AspNetCore.Components;
 
 namespace HabitsApp.WebBlazor.Layout;
 
-public partial class NavMenu
+public partial class TopAppBar
 {
-    private bool collapseNavMenu = true;
-
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    [Parameter]
+    public ClaimsPrincipal User { get; set; } = default!;
 
     [Inject] private AuthStateProvider AuthStateProvider { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
-
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
 
     private static string GetDisplayName(ClaimsPrincipal user)
     {
@@ -34,7 +28,9 @@ public partial class NavMenu
         var familyName = user.FindFirst("family_name")?.Value;
         var email = user.FindFirst(ClaimTypes.Email)?.Value;
         var initials = $"{givenName?.FirstOrDefault()}{familyName?.FirstOrDefault()}";
-        return string.IsNullOrWhiteSpace(initials) ? (email?.Length > 0 ? email.Substring(0, 1).ToUpperInvariant() : "U") : initials.ToUpperInvariant();
+        return string.IsNullOrWhiteSpace(initials)
+            ? (email?.Length > 0 ? email.Substring(0, 1).ToUpperInvariant() : "U")
+            : initials.ToUpperInvariant();
     }
 
     private async Task HandleLogout()

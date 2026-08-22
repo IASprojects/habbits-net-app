@@ -1,0 +1,64 @@
+@page "/habits"
+@attribute [Authorize]
+
+<div class="stack-lg">
+    <section class="dashboard-head">
+        <div>
+            <p class="label-caps dashboard-head__eyebrow">Welcome back,</p>
+            <h1 class="dashboard-head__greeting">Hello, @FirstName</h1>
+        </div>
+
+        <div class="glass-panel momentum-panel">
+            <MomentumRing Percent="@MomentumPercent" />
+            <div>
+                <h2 class="momentum-panel__title">Daily Momentum</h2>
+                <p class="momentum-panel__sub">@CompletedCount of @TotalCount habits completed</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stack-md">
+        <h2 class="dashboard-section__title">Today's Focus</h2>
+
+        @if (!string.IsNullOrWhiteSpace(ErrorMessage) && !ShowModal)
+        {
+            <div class="auth-card__error">@ErrorMessage</div>
+        }
+
+        @if (IsLoading)
+        {
+            <div class="habits-loading">
+                <div class="checking-page__spinner"></div>
+            </div>
+        }
+        else if (HabitItems.Count == 0)
+        {
+            <div class="glass-panel habits-empty">
+                <span class="material-symbols-outlined habits-empty__icon">add_circle</span>
+                <h3 class="habits-empty__title">No habits yet</h3>
+                <p class="habits-empty__text">Start your streak by creating your first habit.</p>
+                <button class="btn btn-primary" @onclick="OpenCreate">Create a habit</button>
+            </div>
+        }
+        else
+        {
+            <div class="habits-list">
+                @foreach (var habit in HabitItems)
+                {
+                    <HabitCard Habit="@habit" OnEdit="@OpenEdit" OnQuickLog="@HandleQuickLog" />
+                }
+            </div>
+        }
+    </section>
+</div>
+
+<button class="fab" title="Add habit" aria-label="Add habit" @onclick="OpenCreate">
+    <span class="material-symbols-outlined">add</span>
+</button>
+
+<HabitFormModal IsOpen="@ShowModal"
+                Habit="@EditingHabit"
+                IsSaving="@IsSaving"
+                ErrorMessage="@ModalErrorMessage"
+                OnSave="@HandleModalSave"
+                OnClose="@CloseModal" />

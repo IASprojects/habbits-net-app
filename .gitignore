@@ -6,7 +6,7 @@
 [Ll]og/
 [Ll]ogs/
 out/
-publish/
+publish/    
 dist/
 *.user
 *.userosscache
