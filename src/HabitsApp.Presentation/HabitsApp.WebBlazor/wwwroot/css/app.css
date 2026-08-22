@@ -1007,7 +1007,7 @@ input:-webkit-autofill:active {
     background: var(--glass-card-fill);
     backdrop-filter: blur(var(--glass-card-blur));
     -webkit-backdrop-filter: blur(var(--glass-card-blur));
-    border: 1px solid var(--glass-card-border);
+    /*border: 1px solid var(--glass-card-border);*/
     border-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%) 1;
 }
 
