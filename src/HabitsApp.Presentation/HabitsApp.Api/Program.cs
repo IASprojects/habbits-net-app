@@ -91,15 +91,16 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddProblemDetails();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("WebBlazor",
-        policy => policy
-            .WithOrigins(
-                "http://localhost:5119",
-                "https://localhost:7243")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+    options.AddPolicy("WebBlazor", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
 var app = builder.Build();
