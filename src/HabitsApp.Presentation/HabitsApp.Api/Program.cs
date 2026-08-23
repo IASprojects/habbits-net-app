@@ -222,6 +222,21 @@ habitsGroup.MapGet("/", async (ClaimsPrincipal principal, IHabitService habitSer
     return Results.Ok(items);
 });
 
+habitsGroup.MapGet("/calendar", async (
+    DateOnly? start,
+    DateOnly? end,
+    Guid? habitId,
+    ClaimsPrincipal principal,
+    IHabitService habitService,
+    CancellationToken cancellationToken) =>
+{
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var from = start ?? new DateOnly(today.Year, today.Month, 1);
+    var to = end ?? new DateOnly(today.Year, today.Month, 1).AddMonths(1).AddDays(-1);
+    var days = await habitService.GetCalendarAsync(GetUserId(principal), from, to, habitId, cancellationToken);
+    return Results.Ok(days);
+});
+
 habitsGroup.MapPost("/", async (CreateHabitDto dto, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
     var result = await habitService.CreateAsync(GetUserId(principal), dto, cancellationToken);

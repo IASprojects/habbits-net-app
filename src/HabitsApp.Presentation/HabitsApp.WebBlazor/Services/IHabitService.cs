@@ -6,6 +6,12 @@ public interface IHabitService
 {
     Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CalendarDay>> GetCalendarAsync(
+        DateOnly start,
+        DateOnly end,
+        Guid? habitId,
+        CancellationToken cancellationToken = default);
+
     Task<HabitDashboardItem> CreateAsync(CreateHabitRequest request, CancellationToken cancellationToken = default);
 
     Task<HabitDashboardItem> UpdateAsync(Guid habitId, UpdateHabitRequest request, CancellationToken cancellationToken = default);

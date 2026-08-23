@@ -258,4 +258,140 @@ public class HabitServiceTests
         var dashboard = await service.GetDashboardAsync(UserId);
         Assert.Empty(dashboard);
     }
+
+    [Fact]
+    public async Task GetCalendarAsync_GroupsColorsByDayAndDedupes()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 2, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        var red = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Read",
+            ColorHex = "#EF4444",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+        var blue = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Run",
+            ColorHex = "#3B82F6",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+        var redClone = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Write",
+            ColorHex = "#EF4444",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.AddRange(red, blue, redClone);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = red.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = blue.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = redClone.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = red.Id, UserId = UserId, CompletedAtUtc = now.AddDays(1), PeriodKey = "2026-02-11" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), null);
+
+        Assert.Equal(2, days.Count);
+
+        var first = days[0];
+        Assert.Equal(new DateOnly(2026, 2, 10), first.Date);
+        Assert.Equal(2, first.Colors.Count);
+        Assert.Contains("#EF4444", first.Colors);
+        Assert.Contains("#3B82F6", first.Colors);
+
+        var second = days[1];
+        Assert.Equal(new DateOnly(2026, 2, 11), second.Date);
+        Assert.Single(second.Colors);
+    }
+
+    [Fact]
+    public async Task GetCalendarAsync_FiltersByHabitId()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 2, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        var red = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Read",
+            ColorHex = "#EF4444",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+        var blue = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Run",
+            ColorHex = "#3B82F6",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.AddRange(red, blue);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = red.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = blue.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), red.Id);
+
+        var day = Assert.Single(days);
+        Assert.Equal(new DateOnly(2026, 2, 10), day.Date);
+        Assert.Single(day.Colors);
+        Assert.Equal("#EF4444", Assert.Single(day.Colors));
+    }
+
+    [Fact]
+    public async Task GetCalendarAsync_RespectsRangeBoundaries()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 2, 10, 12, 0, 0, DateTimeKind.Utc);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Read",
+            ColorHex = "#EF4444",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.Add(habit);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "2026-02-10" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddMonths(1), PeriodKey = "2026-03-10" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), null);
+
+        var day = Assert.Single(days);
+        Assert.Equal(new DateOnly(2026, 2, 10), day.Date);
+    }
 }

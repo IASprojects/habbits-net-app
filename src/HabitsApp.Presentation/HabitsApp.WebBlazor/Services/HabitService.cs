@@ -19,6 +19,22 @@ public sealed class HabitService : IHabitService
         return await HandleResponseAsync<IReadOnlyList<HabitDashboardItem>>(response, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CalendarDay>> GetCalendarAsync(
+        DateOnly start,
+        DateOnly end,
+        Guid? habitId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"/api/habits/calendar?start={start:yyyy-MM-dd}&end={end:yyyy-MM-dd}";
+        if (habitId.HasValue)
+        {
+            query += $"&habitId={habitId.Value}";
+        }
+
+        var response = await _httpClient.GetAsync(query, cancellationToken);
+        return await HandleResponseAsync<IReadOnlyList<CalendarDay>>(response, cancellationToken);
+    }
+
     public async Task<HabitDashboardItem> CreateAsync(CreateHabitRequest request, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.PostAsJsonAsync("/api/habits", request, cancellationToken);

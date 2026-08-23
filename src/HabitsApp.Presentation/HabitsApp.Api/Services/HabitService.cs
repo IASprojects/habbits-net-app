@@ -163,6 +163,54 @@ public sealed class HabitService : IHabitService
         return HabitResult.Success(ToDto(habit, 0));
     }
 
+    public async Task<IReadOnlyList<CalendarDayDto>> GetCalendarAsync(
+        Guid userId,
+        DateOnly start,
+        DateOnly end,
+        Guid? habitId,
+        CancellationToken cancellationToken = default)
+    {
+        var startUtc = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var endUtcExclusive = end.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        var logsQuery = _dbContext.HabitLogs
+            .AsNoTracking()
+            .Where(l => l.CompletedAtUtc >= startUtc && l.CompletedAtUtc < endUtcExclusive);
+
+        if (habitId.HasValue)
+        {
+            logsQuery = logsQuery.Where(l => l.HabitId == habitId.Value);
+        }
+
+        var logRows = await logsQuery
+            .Select(l => new { l.HabitId, Date = l.CompletedAtUtc.Date })
+            .ToListAsync(cancellationToken);
+
+        if (logRows.Count == 0)
+        {
+            return [];
+        }
+
+        var habitIds = logRows.Select(r => r.HabitId).Distinct().ToArray();
+        var colorMap = await _dbContext.Habits
+            .AsNoTracking()
+            .Where(h => habitIds.Contains(h.Id))
+            .ToDictionaryAsync(h => h.Id, h => h.ColorHex, cancellationToken);
+
+        return logRows
+            .GroupBy(r => DateOnly.FromDateTime(r.Date))
+            .OrderBy(g => g.Key)
+            .Select(g => new CalendarDayDto
+            {
+                Date = g.Key,
+                Colors = g
+                    .Select(r => colorMap.TryGetValue(r.HabitId, out var color) ? color : "#4F46E5")
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()
+            })
+            .ToList();
+    }
+
     private async Task<HabitDashboardItemDto> BuildDashboardItemAsync(Habit habit, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;

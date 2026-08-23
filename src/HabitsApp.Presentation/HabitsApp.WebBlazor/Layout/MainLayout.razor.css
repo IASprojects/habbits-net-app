@@ -12,3 +12,9 @@
         padding-bottom: calc(var(--space-2xl) + 72px);
     }
 }
+
+@media (min-width: 641px) {
+    .container-page {
+        padding-bottom: calc(var(--space-2xl) + 96px);
+    }
+}

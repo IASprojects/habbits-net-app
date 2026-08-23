@@ -1,0 +1,17 @@
+<div class="calendar__day @(IsInRange ? "" : "calendar__day--outside") @(IsToday ? "calendar__day--today" : "")">
+    <span class="calendar__day__number">@Date.Day</span>
+
+    @if (Colors.Count > 0)
+    {
+        <div class="calendar__day__dots" aria-label="@AriaLabel">
+            @foreach (var color in VisibleColors)
+            {
+                <span class="calendar__dot" style="background: @color"></span>
+            }
+            @if (Colors.Count > MaxVisibleDots)
+            {
+                <span class="calendar__day__more">+@(Colors.Count - MaxVisibleDots)</span>
+            }
+        </div>
+    }
+</div>
