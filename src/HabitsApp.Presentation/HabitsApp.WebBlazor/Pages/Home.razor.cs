@@ -33,7 +33,7 @@ public partial class Home
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
-            Navigation.NavigateTo("/habits", replace: true);
+            Navigation.NavigateTo("habits", replace: true);
             return;
         }
 
@@ -79,7 +79,7 @@ public partial class Home
             });
 
             await AuthStateProvider.LoginAsync(response);
-            Navigation.NavigateTo("/habits");
+            Navigation.NavigateTo("habits");
         }
         catch (ApiException ex)
         {
@@ -104,7 +104,7 @@ public partial class Home
     private async Task HandleLogout()
     {
         await AuthStateProvider.LogoutAsync();
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("");
     }
 
     public void Dispose()

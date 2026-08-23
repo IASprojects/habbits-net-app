@@ -55,6 +55,7 @@ jobs:
       - name: Prepare GitHub Pages Assets
         run: |
           sed -i 's|<base href="/" />|<base href="/habbits-net-app/" />|g' publish/wwwroot/index.html
+          cp publish/wwwroot/index.html publish/wwwroot/404.html
           touch publish/wwwroot/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

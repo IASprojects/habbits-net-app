@@ -5,6 +5,6 @@
     {
         var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri);
         var returnUrl = string.IsNullOrEmpty(relativePath) ? "/" : relativePath;
-        Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
+        Navigation.NavigateTo($"login?returnUrl={Uri.EscapeDataString(returnUrl)}");
     }
 }

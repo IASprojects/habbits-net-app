@@ -36,6 +36,6 @@ public partial class TopAppBar
     private async Task HandleLogout()
     {
         await AuthStateProvider.LogoutAsync();
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("");
     }
 }
