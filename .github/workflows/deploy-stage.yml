@@ -48,7 +48,8 @@ jobs:
           dotnet-version: "10.0.x"
       - name: Inject Production API URL
         run: |
-          sed -i 's|https://<your-app>.onrender.com|https://habbits-net-app.onrender.com|g' src/HabitsApp.Presentation/HabitsApp.WebBlazor/wwwroot/appsettings.Production.json
+          mkdir -p src/HabitsApp.Presentation/HabitsApp.WebBlazor/wwwroot
+          echo '{"ApiBaseUrl":"https://habbits-net-app.onrender.com"}' > src/HabitsApp.Presentation/HabitsApp.WebBlazor/wwwroot/appsettings.Production.json
       - name: Publish Blazor WASM
         run: dotnet publish src/HabitsApp.Presentation/HabitsApp.WebBlazor/HabitsApp.WebBlazor.csproj -c Release -o publish
       - name: Prepare GitHub Pages Assets
