@@ -1,0 +1,76 @@
+@page "/calendar"
+@attribute [Authorize]
+
+<div class="stack-lg">
+    <section class="glass-panel calendar">
+        <header class="calendar__header">
+            <h1 class="calendar__title">Calendar</h1>
+
+            <div class="calendar__toolbar">
+                <button class="btn btn-ghost" @onclick="GoToday">Today</button>
+                <select class="calendar__filter" @onchange="OnFilterChangedAsync" aria-label="Filter by habit">
+                    <option value="">All habits</option>
+                    @foreach (var habit in habits)
+                    {
+                        <option value="@habit.Id" selected="@(habit.Id == selectedHabitId)">@habit.Title</option>
+                    }
+                </select>
+            </div>
+
+            <div class="calendar__nav">
+                <button class="btn btn-ghost calendar__nav-btn" @onclick="GoPrevious" disabled="@(!CanGoPrevious)" aria-label="Previous">
+                    <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+                <div class="segment" role="group" aria-label="View mode">
+                    <button class="segment__btn @(IsMonthMode ? "segment__btn--active" : "")" @onclick="() => SetMode(ViewMode.Month)">Month</button>
+                    <button class="segment__btn @(!IsMonthMode ? "segment__btn--active" : "")" @onclick="() => SetMode(ViewMode.Week)">Week</button>
+                </div>
+                <button class="btn btn-ghost calendar__nav-btn" @onclick="GoNext" aria-label="Next">
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+            </div>
+
+            <p class="calendar__current">@HeaderTitle</p>
+        </header>
+
+        <div class="calendar__labels" aria-hidden="true">
+            @foreach (var label in WeekDayLabels)
+            {
+                <span class="calendar__label">@label</span>
+            }
+        </div>
+
+        @if (IsLoading)
+        {
+            <div class="calendar__loading">
+                <div class="checking-page__spinner"></div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="auth-card__error">@errorMessage</div>
+        }
+        else
+        {
+            <div class="calendar__grid">
+                @foreach (var week in Weeks)
+                {
+                    @foreach (var day in week)
+                    {
+                        @if (day is not null)
+                        {
+                            <DayCell Date="@day.Value"
+                                     Colors="@GetColors(day.Value)"
+                                     IsInRange="IsInRange(day.Value)"
+                                     IsToday="IsToday(day.Value)" />
+                        }
+                        else
+                        {
+                            <div class="calendar__day calendar__day--empty"></div>
+                        }
+                    }
+                }
+            </div>
+        }
+    </section>
+</div>
