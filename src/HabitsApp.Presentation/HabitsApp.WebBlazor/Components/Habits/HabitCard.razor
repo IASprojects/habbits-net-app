@@ -1,0 +1,38 @@
+<div class="glass-panel habit-card @(Habit.IsCompletedForPeriod ? "habit-card--completed" : "")">
+    <div class="accent-bar" style="background: @Habit.ColorHex; box-shadow: 0 0 12px @GetGlowColor(Habit.ColorHex);"></div>
+
+    <div class="habit-card__info">
+        <div class="habit-card__meta">
+            <span class="chip" style="background: @GetChipBackground(Habit.ColorHex); color: @Habit.ColorHex;">@Habit.Frequency</span>
+            <span class="habit-card__streak">
+                <span class="material-symbols-outlined">local_fire_department</span>
+                @StreakLabel
+            </span>
+            <span class="habit-card__progress">@ProgressLabel</span>
+        </div>
+        <h4 class="habit-card__title @(Habit.IsCompletedForPeriod ? "habit-card__title--completed" : "")">@Habit.Title</h4>
+        @if (!string.IsNullOrWhiteSpace(Habit.Description))
+        {
+            <p class="body-md" style="color: var(--color-on-surface-variant); margin: 0;">@Habit.Description</p>
+        }
+    </div>
+
+    <div class="habit-card__actions">
+        <button class="habit-card__edit" title="Edit" aria-label="Edit" @onclick="() => OnEdit.InvokeAsync(Habit)">
+            <span class="material-symbols-outlined">edit</span>
+        </button>
+
+        @if (Habit.IsCompletedForPeriod)
+        {
+            <div class="habit-card__completed-icon" title="Completed for this period">
+                <span class="material-symbols-outlined">check</span>
+            </div>
+        }
+        else
+        {
+            <button class="habit-card__quick-log" title="Quick log" disabled="@IsBusy" @onclick="HandleQuickLogAsync">
+                QUICK LOG
+            </button>
+        }
+    </div>
+</div>

@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\HabitsApp.Core\HabitsApp.Application\HabitsApp.Application.csproj" />
+    <ProjectReference Include="..\..\HabitsApp.Core\HabitsApp.Infrastructure\HabitsApp.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

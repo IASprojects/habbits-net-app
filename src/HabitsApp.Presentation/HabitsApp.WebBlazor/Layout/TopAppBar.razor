@@ -1,0 +1,14 @@
+<header class="top-app-bar">
+    <div class="top-app-bar__brand">
+        <span class="top-app-bar__mark"></span>
+        <span class="top-app-bar__title">HabitsApp</span>
+    </div>
+    <div class="top-app-bar__actions">
+        <button class="top-app-bar__icon-btn" title="Notifications" aria-label="Notifications">
+            <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <button class="top-app-bar__avatar" title="Sign out" aria-label="Sign out" @onclick="HandleLogout">
+            @GetInitials(User)
+        </button>
+    </div>
+</header>

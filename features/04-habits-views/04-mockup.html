@@ -1,0 +1,260 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>HabitsApp - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#1000a9",
+                        "secondary-fixed-dim": "#c0c1ff",
+                        "outline-variant": "#3c4a42",
+                        "on-primary-container": "#00422b",
+                        "secondary-container": "#3131c0",
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "surface-container-highest": "#2b3545",
+                        "inverse-surface": "#d9e3f7",
+                        "error-container": "#93000a",
+                        "on-background": "#d9e3f7",
+                        "primary-container": "#10b981",
+                        "on-primary": "#003824",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-tint": "#4edea3",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-container-high": "#212a39",
+                        "on-tertiary-container": "#523200",
+                        "secondary-fixed": "#e1e0ff",
+                        "surface-dim": "#091422",
+                        "on-surface": "#d9e3f7",
+                        "surface-container": "#16202f",
+                        "on-tertiary": "#472a00",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-primary-fixed": "#002113",
+                        "primary-fixed": "#6ffbbe",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "tertiary-container": "#e29100",
+                        "on-secondary-fixed": "#07006c",
+                        "inverse-on-surface": "#273140",
+                        "primary-fixed-dim": "#4edea3",
+                        "surface-container-low": "#121c2a",
+                        "primary": "#4edea3",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "background": "#091422",
+                        "tertiary": "#ffb95f",
+                        "on-error": "#690005",
+                        "outline": "#86948a",
+                        "on-surface-variant": "#bbcabf",
+                        "surface": "#091422",
+                        "surface-variant": "#2b3545",
+                        "on-secondary-fixed-variant": "#2f2ebe",
+                        "surface-container-lowest": "#050e1c",
+                        "on-secondary-container": "#b0b2ff",
+                        "secondary": "#c0c1ff",
+                        "inverse-primary": "#006c49",
+                        "surface-bright": "#303a49"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "unit": "8px",
+                        "container-padding-desktop": "40px",
+                        "container-padding-mobile": "20px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%) 1;
+        }
+
+        .glass-panel-level-2 {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(64px);
+            -webkit-backdrop-filter: blur(64px);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+        }
+
+        .neon-glow-primary {
+            box-shadow: 0 0 12px rgba(78, 222, 163, 0.3);
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden pt-20 pb-32">
+<!-- TopAppBar -->
+<header class="bg-background/80 dark:bg-background/80 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-white/12 flex justify-between items-center px-container-padding-mobile md:px-container-padding-desktop h-16 w-full">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="A sophisticated, high-contrast portrait of a young professional in a softly lit, modern environment. The lighting is cinematic, highlighting the subject's face against a deep, dark slate background. The mood is calm and focused, aligning with the premium, focused aesthetic of a luxury personal growth application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDvQoztKN2TwXcSU7XR5NKysmqZOQemdlxBmR_nVycAv5sjTM39ItWeCRhSPC6bpQ1Aj0XwVHarequ52MdCmpKNicJUqiQ-2A-EZq3y14pKFLce4zv2uqJO4r0jHQeC5dVxGr3oAI2g-eX14zRaEaZ1pLR7MQFQTvWwL2d-GERaIiUwnyspDtV12B3yB3v1Dtn4K7ixU6Zf5fvf7fx9PP3kwbt9axHRWK8oyE7lEbJc1c3dmNhy06e">
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary tracking-tighter">HabitsApp</h1>
+</div>
+</div>
+<button class="hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200 text-on-surface-variant dark:text-on-surface-variant w-10 h-10 flex items-center justify-center rounded-full glass-panel-level-2">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="max-w-[1200px] mx-auto px-container-padding-mobile md:px-container-padding-desktop flex flex-col gap-stack-lg mt-stack-md">
+<!-- Greeting & Momentum -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-end gap-stack-md">
+<div>
+<p class="font-body-md text-body-md mb-1 text-on-surface" data-stitch-orig-opacity="0" style="opacity: 0;">Welcome back,</p>
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface font-semibold">Hello, Julian</h2>
+</div>
+<div class="glass-panel rounded-xl p-4 flex items-center gap-4">
+<div class="relative w-12 h-12 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+<path class="text-surface-container-highest stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="2"></path>
+<path class="text-primary stroke-current neon-glow-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="85, 100" stroke-width="2"></path>
+</svg>
+<span class="absolute font-label-caps text-label-caps text-primary">85%</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold">Daily Momentum</h3>
+<p class="font-body-md text-body-md text-sm text-on-surface" data-stitch-orig-opacity="0" style="opacity: 0;">Welcome back,</p>
+</div>
+</div>
+</section>
+<!-- Habit Tracking Feed -->
+<section class="flex flex-col gap-stack-md">
+<h3 class="font-headline-md text-headline-md text-on-surface">Today's Focus</h3>
+<div class="flex flex-col gap-4">
+<!-- Card 1: Morning Meditation -->
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary neon-glow-primary rounded-l-xl"></div>
+<div class="flex justify-between items-center">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="bg-primary/10 text-primary font-label-caps text-label-caps px-2 py-1 rounded-sm font-semibold">Mind</span>
+<span class="font-body-md text-body-md flex items-center gap-1 text-sm text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">local_fire_department</span> 14 Days Streak</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface font-semibold">Morning Meditation</h4>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full glass-panel-level-2 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<button class="bg-primary text-on-primary font-label-caps text-label-caps px-4 py-2 rounded-full hover:opacity-90 transition-opacity active:scale-95 drop-shadow-[0_0_8px_rgba(78,222,163,0.4)]">
+                                QUICK LOG
+                            </button>
+</div>
+</div>
+</div>
+<!-- Card 2: Deep Work -->
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-secondary rounded-l-xl" style="box-shadow: 0 0 12px rgba(192, 193, 255, 0.3);"></div>
+<div class="flex justify-between items-center">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="bg-secondary/10 text-secondary font-label-caps text-label-caps px-2 py-1 rounded-sm font-semibold">Career</span>
+<span class="font-body-md text-body-md flex items-center gap-1 text-sm text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">local_fire_department</span> 7 Days Streak</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface font-semibold">Deep Work</h4>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full glass-panel-level-2 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<button class="glass-panel-level-2 border border-white/20 text-on-surface font-label-caps text-label-caps px-4 py-2 rounded-full hover:bg-white/5 transition-colors active:scale-95">
+                                QUICK LOG
+                            </button>
+</div>
+</div>
+</div>
+<!-- Card 3: Hydration -->
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden group opacity-60">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary rounded-l-xl" style="box-shadow: 0 0 12px rgba(255, 185, 95, 0.3);"></div>
+<div class="flex justify-between items-center">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="bg-tertiary/10 text-tertiary font-label-caps text-label-caps px-2 py-1 rounded-sm font-semibold">Health</span>
+<span class="font-body-md text-body-md flex items-center gap-1 text-sm text-on-surface"><span class="material-symbols-outlined text-[16px] text-tertiary">local_fire_department</span> 21 Days Streak</span>
+</div>
+<h4 class="font-headline-md text-headline-md text-on-surface line-through font-semibold">Hydration</h4>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-full glass-panel-level-2 flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined" data-icon="edit">edit</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">check</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden bg-surface-container/30 dark:bg-surface-container/30 backdrop-blur-[32px] fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full shadow-2xl shadow-primary/20 flex justify-around items-center py-2 px-4 z-50">
+<a class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full p-3 drop-shadow-[0_0_8px_rgba(78,222,163,0.4)] hover:bg-white/5 transition-colors active:scale-90 transition-all duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home_app_logo">home_app_logo</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-3 hover:bg-white/5 transition-colors active:scale-90 transition-all duration-300 rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-3 hover:bg-white/5 transition-colors active:scale-90 transition-all duration-300 rounded-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</a>
+</nav>
+<!-- Floating Action Button for Add Habit (Desktop only as per prompt structure, though typically a FAB is on mobile, placing it appropriately) -->
+<button class="hidden md:flex fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full items-center justify-center hover:opacity-90 transition-opacity active:scale-95 drop-shadow-[0_0_12px_rgba(78,222,163,0.6)] z-50">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+
+
+</body></html>

@@ -30,6 +30,13 @@ public partial class Home
     {
         await CheckHealth();
 
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/habits", replace: true);
+            return;
+        }
+
         timer = new Timer(async _ => await CheckHealth(), null,
             TimeSpan.FromSeconds(30),
             TimeSpan.FromSeconds(30));
@@ -72,7 +79,7 @@ public partial class Home
             });
 
             await AuthStateProvider.LoginAsync(response);
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("/habits");
         }
         catch (ApiException ex)
         {

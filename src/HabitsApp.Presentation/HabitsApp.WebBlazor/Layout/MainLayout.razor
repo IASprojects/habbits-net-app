@@ -1,12 +1,14 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main class="content-main">
-        <article class="container-page">
-            @Body
-        </article>
-    </main>
-</div>
+<AuthorizeView>
+    <Authorized>
+        <TopAppBar User="@context.User" />
+        <BottomNav />
+    </Authorized>
+</AuthorizeView>
+
+<main class="content-main">
+    <article class="container-page">
+        @Body
+    </article>
+</main>

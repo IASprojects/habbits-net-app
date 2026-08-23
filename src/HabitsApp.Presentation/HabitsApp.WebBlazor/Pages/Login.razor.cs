@@ -39,8 +39,8 @@ public partial class Login
 
             await AuthStateProvider.LoginAsync(response);
 
-            var target = string.IsNullOrWhiteSpace(ReturnUrl) || ReturnUrl.StartsWith("/login")
-                ? "/"
+            var target = string.IsNullOrWhiteSpace(ReturnUrl) || ReturnUrl == "/" || ReturnUrl.StartsWith("/login")
+                ? "/habits"
                 : ReturnUrl;
             Navigation.NavigateTo(target);
         }
