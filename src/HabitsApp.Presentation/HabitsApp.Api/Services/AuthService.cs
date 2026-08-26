@@ -153,11 +153,20 @@ public sealed class AuthService : IAuthService
         return AuthResult.Success(response);
     }
 
-    public async Task<AuthResult> LogoutAsync(LogoutCommand command, CancellationToken cancellationToken = default)
+    public async Task<AuthResult> LogoutAsync(ClaimsPrincipal principal, LogoutCommand command, CancellationToken cancellationToken = default)
     {
+        var sub = principal.FindFirstValue("sub");
+        if (sub is null || !Guid.TryParse(sub, out var userId))
+        {
+            return AuthResult.Failure(
+                StatusCodes.Status401Unauthorized,
+                "Unauthorized",
+                "Invalid session.");
+        }
+
         var tokenHash = HashToken(command.RefreshToken);
         var refreshToken = await _dbContext.RefreshTokens
-            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash, cancellationToken);
+            .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash && rt.UserId == userId, cancellationToken);
 
         if (refreshToken is not null && refreshToken.RevokedAtUtc is null)
         {

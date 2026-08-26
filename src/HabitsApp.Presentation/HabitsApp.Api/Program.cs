@@ -7,11 +7,15 @@ using HabitsApp.Domain.Entities;
 using HabitsApp.Infrastructure.Abstractions;
 using HabitsApp.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +95,49 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddProblemDetails();
 
+// Reconocer la IP real del cliente detrás del proxy inverso (Render).
+// Fail-closed: solo se confía en X-Forwarded-For/Proto si se configuran proxies conocidos.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    var knownProxies = builder.Configuration["ForwardedHeaders:KnownProxies"];
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+
+    if (string.IsNullOrWhiteSpace(knownProxies))
+    {
+        return;
+    }
+
+    foreach (var proxy in knownProxies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (IPAddress.TryParse(proxy, out var ip))
+        {
+            options.KnownProxies.Add(ip);
+        }
+    }
+});
+
+// Rate limiting para los endpoints de autenticación (mitiga fuerza bruta y abuso).
+var authPermitLimit = builder.Configuration.GetValue<int>("RateLimiting:Auth:PermitLimit", 10);
+var authWindowSeconds = builder.Configuration.GetValue<int>("RateLimiting:Auth:WindowSeconds", 60);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+    {
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = authPermitLimit,
+            Window = TimeSpan.FromSeconds(authWindowSeconds),
+            QueueLimit = 0
+        });
+    });
+});
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddCors(options =>
@@ -117,6 +164,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseCors("WebBlazor");
@@ -124,6 +172,8 @@ app.UseCors("WebBlazor");
 // Add authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.MapPost("/api/auth/register", async (RegisterUserCommand command, IAuthService authService, CancellationToken cancellationToken) =>
 {
@@ -140,7 +190,8 @@ app.MapPost("/api/auth/register", async (RegisterUserCommand command, IAuthServi
         extensions: result.ValidationErrors is { Count: > 0 }
             ? new Dictionary<string, object?> { ["errors"] = result.ValidationErrors }
             : null);
-});
+})
+.RequireRateLimiting("auth");
 
 app.MapPost("/api/auth/login", async (LoginCommand command, IAuthService authService, CancellationToken cancellationToken) =>
 {
@@ -154,7 +205,8 @@ app.MapPost("/api/auth/login", async (LoginCommand command, IAuthService authSer
         statusCode: result.StatusCode ?? StatusCodes.Status401Unauthorized,
         title: result.ErrorType,
         detail: result.ErrorDetail);
-});
+})
+.RequireRateLimiting("auth");
 
 app.MapPost("/api/auth/refresh", async (RefreshTokenCommand command, IAuthService authService, CancellationToken cancellationToken) =>
 {
@@ -168,11 +220,12 @@ app.MapPost("/api/auth/refresh", async (RefreshTokenCommand command, IAuthServic
         statusCode: result.StatusCode ?? StatusCodes.Status401Unauthorized,
         title: result.ErrorType,
         detail: result.ErrorDetail);
-});
+})
+.RequireRateLimiting("auth");
 
-app.MapPost("/api/auth/logout", async (LogoutCommand command, IAuthService authService, CancellationToken cancellationToken) =>
+app.MapPost("/api/auth/logout", async (ClaimsPrincipal principal, LogoutCommand command, IAuthService authService, CancellationToken cancellationToken) =>
 {
-    var result = await authService.LogoutAsync(command, cancellationToken);
+    var result = await authService.LogoutAsync(principal, command, cancellationToken);
     if (!result.Succeeded)
     {
         return Results.Problem(
@@ -207,10 +260,11 @@ app.MapGet("/api/health", async (IDatabaseHealthService healthService) =>
     });
 });
 
-static Guid GetUserId(ClaimsPrincipal principal)
+static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
 {
     var sub = principal.FindFirstValue("sub");
-    return sub is not null && Guid.TryParse(sub, out var userId) ? userId : Guid.Empty;
+    userId = Guid.Empty;
+    return sub is not null && Guid.TryParse(sub, out userId);
 }
 
 var habitsGroup = app.MapGroup("/api/habits")
@@ -218,7 +272,12 @@ var habitsGroup = app.MapGroup("/api/habits")
 
 habitsGroup.MapGet("/", async (ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
-    var items = await habitService.GetDashboardAsync(GetUserId(principal), cancellationToken);
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var items = await habitService.GetDashboardAsync(userId, cancellationToken);
     return Results.Ok(items);
 });
 
@@ -230,16 +289,26 @@ habitsGroup.MapGet("/calendar", async (
     IHabitService habitService,
     CancellationToken cancellationToken) =>
 {
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
     var from = start ?? new DateOnly(today.Year, today.Month, 1);
     var to = end ?? new DateOnly(today.Year, today.Month, 1).AddMonths(1).AddDays(-1);
-    var days = await habitService.GetCalendarAsync(GetUserId(principal), from, to, habitId, cancellationToken);
+    var days = await habitService.GetCalendarAsync(userId, from, to, habitId, cancellationToken);
     return Results.Ok(days);
 });
 
 habitsGroup.MapPost("/", async (CreateHabitDto dto, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
-    var result = await habitService.CreateAsync(GetUserId(principal), dto, cancellationToken);
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await habitService.CreateAsync(userId, dto, cancellationToken);
     if (result.Succeeded)
     {
         return Results.Created($"/api/habits/{result.Data!.Id}", result.Data);
@@ -253,7 +322,12 @@ habitsGroup.MapPost("/", async (CreateHabitDto dto, ClaimsPrincipal principal, I
 
 habitsGroup.MapPut("/{id:guid}", async (Guid id, UpdateHabitDto dto, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
-    var result = await habitService.UpdateAsync(GetUserId(principal), id, dto, cancellationToken);
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await habitService.UpdateAsync(userId, id, dto, cancellationToken);
     if (result.Succeeded)
     {
         return Results.Ok(result.Data);
@@ -267,7 +341,12 @@ habitsGroup.MapPut("/{id:guid}", async (Guid id, UpdateHabitDto dto, ClaimsPrinc
 
 habitsGroup.MapPost("/{id:guid}/quick-log", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
-    var result = await habitService.QuickLogAsync(GetUserId(principal), id, cancellationToken);
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await habitService.QuickLogAsync(userId, id, cancellationToken);
     if (result.Succeeded)
     {
         return Results.Ok(result.Data);
@@ -281,7 +360,12 @@ habitsGroup.MapPost("/{id:guid}/quick-log", async (Guid id, ClaimsPrincipal prin
 
 habitsGroup.MapDelete("/{id:guid}", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
-    var result = await habitService.ArchiveAsync(GetUserId(principal), id, cancellationToken);
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await habitService.ArchiveAsync(userId, id, cancellationToken);
     if (result.Succeeded)
     {
         return Results.NoContent();

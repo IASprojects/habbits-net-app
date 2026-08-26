@@ -10,7 +10,7 @@ public interface IAuthService
 
     Task<AuthResult> RefreshAsync(RefreshTokenCommand command, CancellationToken cancellationToken = default);
 
-    Task<AuthResult> LogoutAsync(LogoutCommand command, CancellationToken cancellationToken = default);
+    Task<AuthResult> LogoutAsync(ClaimsPrincipal principal, LogoutCommand command, CancellationToken cancellationToken = default);
 
     Task<UserProfileDto?> GetCurrentUserAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
 }

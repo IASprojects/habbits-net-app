@@ -195,6 +195,63 @@ public class HabitServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ReturnsNotFound_ForOtherUsersHabit()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var otherUser = Guid.NewGuid();
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
+        {
+            Title = "Tampered",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+    }
+
+    [Fact]
+    public async Task ArchiveAsync_ReturnsNotFound_ForOtherUsersHabit()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var otherUser = Guid.NewGuid();
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.ArchiveAsync(UserId, habit.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateAsync_UpdatesFieldsAndSetsUpdatedAt()
     {
         using var context = CreateContext(Guid.NewGuid().ToString());

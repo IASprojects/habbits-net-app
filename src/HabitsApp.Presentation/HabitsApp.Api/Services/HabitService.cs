@@ -79,7 +79,7 @@ public sealed class HabitService : IHabitService
 
     public async Task<HabitResult> UpdateAsync(Guid userId, Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken = default)
     {
-        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId, cancellationToken);
+        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId && h.UserId == userId, cancellationToken);
         if (habit is null)
         {
             return HabitResult.Failure(
@@ -102,7 +102,7 @@ public sealed class HabitService : IHabitService
 
     public async Task<HabitResult> QuickLogAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
     {
-        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId, cancellationToken);
+        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId && h.UserId == userId, cancellationToken);
         if (habit is null)
         {
             return HabitResult.Failure(
@@ -144,7 +144,7 @@ public sealed class HabitService : IHabitService
 
     public async Task<HabitResult> ArchiveAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
     {
-        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId, cancellationToken);
+        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId && h.UserId == userId, cancellationToken);
         if (habit is null)
         {
             return HabitResult.Failure(
