@@ -1,4 +1,5 @@
 using HabitsApp.Api.Services;
+using HabitsApp.Application.Services;
 using HabitsApp.Application.Contracts.Habits;
 using HabitsApp.Domain.Entities;
 using HabitsApp.Domain.Enums;
@@ -166,6 +167,164 @@ public class HabitServiceTests
         Assert.Equal(1, first.Data!.CurrentPeriodCount);
         Assert.Equal(1, second.Data!.CurrentPeriodCount);
         Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_AllowsMultipleDaysWithinSameWeek_UpToTargetCount()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+        var weekStart = HabitPeriodCalculator.GetWindowStartUtc(FrequencyType.Weekly, now);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Exercise",
+            Frequency = FrequencyType.Weekly,
+            TargetCount = 3,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+
+        var seedDays = Enumerable.Range(0, 7)
+            .Select(offset => weekStart.AddDays(offset).Date)
+            .Where(day => day != now.Date)
+            .Take(2)
+            .ToArray();
+
+        context.HabitLogs.AddRange(seedDays.Select(day => new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = day.AddHours(12),
+            PeriodKey = HabitPeriodCalculator.GetDayKey(day)
+        }));
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(3, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(3, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_SameDayDoubleClick_IsIdempotent_ForWeeklyHabit()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Exercise",
+            Frequency = FrequencyType.Weekly,
+            TargetCount = 3,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var first = await service.QuickLogAsync(UserId, habit.Id);
+        var second = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.Equal(1, first.Data!.CurrentPeriodCount);
+        Assert.Equal(1, second.Data!.CurrentPeriodCount);
+        Assert.Equal(1, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_NoOpsOnceTargetReached_EvenOnNewDayWithinSamePeriod()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+        var weekStart = HabitPeriodCalculator.GetWindowStartUtc(FrequencyType.Weekly, now);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Exercise",
+            Frequency = FrequencyType.Weekly,
+            TargetCount = 2,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+
+        var seedDays = Enumerable.Range(0, 7)
+            .Select(offset => weekStart.AddDays(offset).Date)
+            .Where(day => day != now.Date)
+            .Take(2)
+            .ToArray();
+
+        context.HabitLogs.AddRange(seedDays.Select(day => new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = day.AddHours(12),
+            PeriodKey = HabitPeriodCalculator.GetDayKey(day)
+        }));
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(2, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_AllowsMultipleDaysWithinSameMonth_UpToTargetCount()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+        var monthStart = HabitPeriodCalculator.GetWindowStartUtc(FrequencyType.Monthly, now);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Gym",
+            Frequency = FrequencyType.Monthly,
+            TargetCount = 2,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var daysInMonth = DateTime.DaysInMonth(monthStart.Year, monthStart.Month);
+        var seedDay = Enumerable.Range(0, daysInMonth)
+            .Select(offset => monthStart.AddDays(offset).Date)
+            .First(day => day != now.Date);
+
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = seedDay.AddHours(12),
+            PeriodKey = HabitPeriodCalculator.GetDayKey(seedDay)
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(2, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
     }
 
     [Fact]

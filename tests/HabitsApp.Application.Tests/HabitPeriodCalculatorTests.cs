@@ -80,4 +80,15 @@ public class HabitPeriodCalculatorTests
         Assert.Equal(new DateTime(2026, 9, 1), HabitPeriodCalculator.GetWindowStartUtc(FrequencyType.Monthly, firstDay));
         Assert.Equal("2026-09", HabitPeriodCalculator.GetPeriodKey(FrequencyType.Monthly, firstDay));
     }
+
+    [Theory]
+    [InlineData("2026-08-19T00:00:00Z", "2026-08-19")]
+    [InlineData("2026-08-19T23:59:59Z", "2026-08-19")]
+    [InlineData("2026-08-19T14:30:00Z", "2026-08-19")]
+    public void GetDayKey_ReturnsCalendarDayRegardlessOfTime(string input, string expected)
+    {
+        var utc = DateTime.Parse(input, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+        Assert.Equal(expected, HabitPeriodCalculator.GetDayKey(utc));
+    }
 }
