@@ -1,18 +1,10 @@
 ﻿@page "/"
 
-@inject IHealthService HealthService
-@implements IDisposable
-
 <PageTitle>HabitsApp</PageTitle>
 
 <AuthorizeView>
     <NotAuthorized>
         <div class="ambient-glow" aria-hidden="true"></div>
-
-        <div class="status-pill" role="status">
-            <span class="status-pill__dot @(isConnected ? "status-pill__dot--online" : "status-pill__dot--offline")"></span>
-            <span class="status-pill__label">@(isConnected ? "Server Online" : "Server Offline")</span>
-        </div>
 
         <div class="auth-page landing">
             <div class="glass-card auth-card auth-card--login">
@@ -96,23 +88,6 @@
                     <h1 class="headline-md auth-card__title">You're logged in</h1>
                     <p class="body-lg auth-card__tagline">Welcome back.</p>
                 </header>
-
-                <div class="auth-card__db-status body-md">
-                    @if (isConnected)
-                    {
-                        <span class="dot dot--success"></span>
-                        <span>Database connected</span>
-                    }
-                    else
-                    {
-                        <span class="dot dot--error"></span>
-                        <span>Database disconnected</span>
-                    }
-                </div>
-
-                <div class="auth-card__footer">
-                    <a class="auth-card__link" href="javascript:void(0)" @onclick="HandleLogout">Logout</a>
-                </div>
             </div>
         </div>
     </Authorized>

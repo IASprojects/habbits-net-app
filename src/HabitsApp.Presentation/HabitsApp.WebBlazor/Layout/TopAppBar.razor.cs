@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using HabitsApp.WebBlazor.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace HabitsApp.WebBlazor.Layout;
@@ -8,8 +7,6 @@ public partial class TopAppBar
 {
     [Parameter]
     public ClaimsPrincipal User { get; set; } = default!;
-
-    [Inject] private AuthStateProvider AuthStateProvider { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
@@ -33,9 +30,5 @@ public partial class TopAppBar
             : initials.ToUpperInvariant();
     }
 
-    private async Task HandleLogout()
-    {
-        await AuthStateProvider.LogoutAsync();
-        Navigation.NavigateTo("");
-    }
+    private void GoToSettings() => Navigation.NavigateTo("settings");
 }
