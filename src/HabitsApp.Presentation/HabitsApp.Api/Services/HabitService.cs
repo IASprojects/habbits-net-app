@@ -112,11 +112,20 @@ public sealed class HabitService : IHabitService
         }
 
         var now = DateTime.UtcNow;
-        var periodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, now);
+        var dayKey = HabitPeriodCalculator.GetDayKey(now);
 
-        var existing = await _dbContext.HabitLogs
-            .FirstOrDefaultAsync(l => l.HabitId == habitId && l.PeriodKey == periodKey, cancellationToken);
-        if (existing is not null)
+        var alreadyLoggedToday = await _dbContext.HabitLogs
+            .AnyAsync(l => l.HabitId == habitId && l.PeriodKey == dayKey, cancellationToken);
+        if (alreadyLoggedToday)
+        {
+            return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
+        }
+
+        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
+        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+        var currentPeriodCount = await _dbContext.HabitLogs
+            .CountAsync(l => l.HabitId == habitId && l.CompletedAtUtc >= windowStart && l.CompletedAtUtc < windowEnd, cancellationToken);
+        if (currentPeriodCount >= habit.TargetCount)
         {
             return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
         }
@@ -127,7 +136,7 @@ public sealed class HabitService : IHabitService
             HabitId = habitId,
             UserId = userId,
             CompletedAtUtc = now,
-            PeriodKey = periodKey
+            PeriodKey = dayKey
         });
 
         try
@@ -136,7 +145,7 @@ public sealed class HabitService : IHabitService
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
-            _logger.LogWarning(ex, "Quick log race detected for habit {HabitId} in period {PeriodKey}; treating as idempotent.", habitId, periodKey);
+            _logger.LogWarning(ex, "Quick log race detected for habit {HabitId} on day {DayKey}; treating as idempotent.", habitId, dayKey);
         }
 
         return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));

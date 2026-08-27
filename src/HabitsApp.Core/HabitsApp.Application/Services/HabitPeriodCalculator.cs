@@ -29,12 +29,15 @@ public static class HabitPeriodCalculator
 
         return frequency switch
         {
-            FrequencyType.Daily => windowStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            FrequencyType.Daily => GetDayKey(windowStart),
             FrequencyType.Weekly => $"{ISOWeek.GetYear(windowStart)}-W{ISOWeek.GetWeekOfYear(windowStart):D2}",
             FrequencyType.Monthly => windowStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
             _ => throw new ArgumentOutOfRangeException(nameof(frequency), frequency, "Unsupported frequency type.")
         };
     }
+
+    public static string GetDayKey(DateTime utcNow)
+        => utcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private static DateTime StartOfWeek(DateTime date)
     {
