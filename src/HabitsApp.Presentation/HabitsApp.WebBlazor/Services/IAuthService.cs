@@ -13,4 +13,8 @@ public interface IAuthService
     Task LogoutAsync(string refreshToken, CancellationToken cancellationToken = default);
 
     Task<UserProfileDto?> GetMeAsync(CancellationToken cancellationToken = default);
+
+    Task<UserProfileDto?> UpdateMeAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TimeZoneDto>> GetTimezonesAsync(CancellationToken cancellationToken = default);
 }

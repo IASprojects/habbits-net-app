@@ -11,6 +11,8 @@ public interface IHabitService
         Guid? habitId,
         CancellationToken cancellationToken = default);
 
+    Task<DateOnly> GetLocalTodayAsync(Guid userId, CancellationToken cancellationToken = default);
+
     Task<HabitResult> CreateAsync(Guid userId, CreateHabitDto dto, CancellationToken cancellationToken = default);
 
     Task<HabitResult> UpdateAsync(Guid userId, Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken = default);

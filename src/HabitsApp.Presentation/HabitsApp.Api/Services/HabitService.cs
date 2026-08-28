@@ -36,19 +36,20 @@ public sealed class HabitService : IHabitService
             .ToListAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        var logsByHabit = logs.ToLookup(l => l.HabitId);
         var items = new List<HabitDashboardItemDto>(habits.Count);
 
         foreach (var habit in habits)
         {
-            var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
-            var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+            var habitLogs = logsByHabit[habit.Id].Select(l => l.CompletedAtUtc).ToList();
+            var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
+            var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, tz, now);
 
-            var currentPeriodCount = logs.Count(l =>
-                l.HabitId == habit.Id &&
-                l.CompletedAtUtc >= windowStart &&
-                l.CompletedAtUtc < windowEnd);
+            var currentPeriodCount = habitLogs.Count(x => x >= windowStart && x < windowEnd);
+            var streak = ComputeStreak(habitLogs, tz, now);
 
-            items.Add(ToDto(habit, currentPeriodCount));
+            items.Add(ToDto(habit, currentPeriodCount, streak));
         }
 
         return items;
@@ -74,7 +75,7 @@ public sealed class HabitService : IHabitService
 
         _logger.LogInformation("User {UserId} created habit {HabitId}.", userId, habit.Id);
 
-        return HabitResult.Success(ToDto(habit, 0));
+        return HabitResult.Success(ToDto(habit, 0, 0));
     }
 
     public async Task<HabitResult> UpdateAsync(Guid userId, Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken = default)
@@ -112,7 +113,8 @@ public sealed class HabitService : IHabitService
         }
 
         var now = DateTime.UtcNow;
-        var dayKey = HabitPeriodCalculator.GetDayKey(now);
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        var dayKey = HabitPeriodCalculator.GetDayKey(tz, now);
 
         var alreadyLoggedToday = await _dbContext.HabitLogs
             .AnyAsync(l => l.HabitId == habitId && l.PeriodKey == dayKey, cancellationToken);
@@ -121,8 +123,8 @@ public sealed class HabitService : IHabitService
             return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
         }
 
-        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
-        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
+        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, tz, now);
         var currentPeriodCount = await _dbContext.HabitLogs
             .CountAsync(l => l.HabitId == habitId && l.CompletedAtUtc >= windowStart && l.CompletedAtUtc < windowEnd, cancellationToken);
         if (currentPeriodCount >= habit.TargetCount)
@@ -169,7 +171,7 @@ public sealed class HabitService : IHabitService
 
         _logger.LogInformation("User {UserId} archived habit {HabitId}.", userId, habitId);
 
-        return HabitResult.Success(ToDto(habit, 0));
+        return HabitResult.Success(ToDto(habit, 0, 0));
     }
 
     public async Task<IReadOnlyList<CalendarDayDto>> GetCalendarAsync(
@@ -179,8 +181,9 @@ public sealed class HabitService : IHabitService
         Guid? habitId,
         CancellationToken cancellationToken = default)
     {
-        var startUtc = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var endUtcExclusive = end.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(start.ToDateTime(TimeOnly.MinValue), tz);
+        var endUtcExclusive = TimeZoneInfo.ConvertTimeToUtc(end.AddDays(1).ToDateTime(TimeOnly.MinValue), tz);
 
         var logsQuery = _dbContext.HabitLogs
             .AsNoTracking()
@@ -192,7 +195,7 @@ public sealed class HabitService : IHabitService
         }
 
         var logRows = await logsQuery
-            .Select(l => new { l.HabitId, Date = l.CompletedAtUtc.Date })
+            .Select(l => new { l.HabitId, l.CompletedAtUtc })
             .ToListAsync(cancellationToken);
 
         if (logRows.Count == 0)
@@ -207,7 +210,7 @@ public sealed class HabitService : IHabitService
             .ToDictionaryAsync(h => h.Id, h => h.ColorHex, cancellationToken);
 
         return logRows
-            .GroupBy(r => DateOnly.FromDateTime(r.Date))
+            .GroupBy(r => DateOnly.FromDateTime(HabitPeriodCalculator.GetLocalNow(tz, r.CompletedAtUtc)))
             .OrderBy(g => g.Key)
             .Select(g => new CalendarDayDto
             {
@@ -220,23 +223,80 @@ public sealed class HabitService : IHabitService
             .ToList();
     }
 
+    public async Task<DateOnly> GetLocalTodayAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        return DateOnly.FromDateTime(HabitPeriodCalculator.GetLocalNow(tz, DateTime.UtcNow));
+    }
+
+    private async Task<TimeZoneInfo> ResolveTimeZoneAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var timeZoneId = await _dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.TimeZoneId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return TimeZoneInfo.Utc;
+        }
+
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.Utc;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.Utc;
+        }
+    }
+
+    private static int ComputeStreak(IReadOnlyList<DateTime> completedAtUtc, TimeZoneInfo tz, DateTime utcNow)
+    {
+        var localToday = HabitPeriodCalculator.GetLocalNow(tz, utcNow).Date;
+
+        var completedDays = completedAtUtc
+            .Select(x => HabitPeriodCalculator.GetLocalNow(tz, x).Date)
+            .ToHashSet();
+
+        var reference = completedDays.Contains(localToday) ? localToday : localToday.AddDays(-1);
+
+        var streak = 0;
+        var cursor = reference;
+        while (completedDays.Contains(cursor))
+        {
+            streak++;
+            cursor = cursor.AddDays(-1);
+        }
+
+        return streak;
+    }
+
     private async Task<HabitDashboardItemDto> BuildDashboardItemAsync(Habit habit, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
-        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+        var tz = await ResolveTimeZoneAsync(habit.UserId, cancellationToken);
+        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
+        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, tz, now);
 
-        var currentPeriodCount = await _dbContext.HabitLogs
-            .CountAsync(l =>
-                l.HabitId == habit.Id &&
-                l.CompletedAtUtc >= windowStart &&
-                l.CompletedAtUtc < windowEnd,
-                cancellationToken);
+        var habitLogs = await _dbContext.HabitLogs
+            .AsNoTracking()
+            .Where(l => l.HabitId == habit.Id)
+            .Select(l => l.CompletedAtUtc)
+            .ToListAsync(cancellationToken);
 
-        return ToDto(habit, currentPeriodCount);
+        var currentPeriodCount = habitLogs.Count(x => x >= windowStart && x < windowEnd);
+        var streak = ComputeStreak(habitLogs, tz, now);
+
+        return ToDto(habit, currentPeriodCount, streak);
     }
 
-    private static HabitDashboardItemDto ToDto(Habit habit, int currentPeriodCount)
+    private static HabitDashboardItemDto ToDto(Habit habit, int currentPeriodCount, int streak)
         => new()
         {
             Id = habit.Id,
@@ -246,6 +306,7 @@ public sealed class HabitService : IHabitService
             Frequency = habit.Frequency,
             TargetCount = habit.TargetCount,
             CurrentPeriodCount = currentPeriodCount,
-            IsCompletedForPeriod = currentPeriodCount >= habit.TargetCount
+            IsCompletedForPeriod = currentPeriodCount >= habit.TargetCount,
+            Streak = streak
         };
 }

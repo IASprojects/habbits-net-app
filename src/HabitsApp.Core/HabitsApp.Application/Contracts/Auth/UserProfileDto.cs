@@ -9,4 +9,6 @@ public sealed class UserProfileDto
     public string? FirstName { get; set; }
 
     public string? LastName { get; set; }
+
+    public string? TimeZoneId { get; set; }
 }
