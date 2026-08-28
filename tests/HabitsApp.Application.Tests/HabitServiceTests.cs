@@ -610,4 +610,123 @@ public class HabitServiceTests
         var day = Assert.Single(days);
         Assert.Equal(new DateOnly(2026, 2, 10), day.Date);
     }
+
+    [Fact]
+    public async Task GetDashboardAsync_ComputesStreakForConsecutiveDays()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Meditate",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.Add(habit);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "today" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-1), PeriodKey = "yesterday" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-2), PeriodKey = "day-before" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-4), PeriodKey = "gap-beyond" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        var item = Assert.Single(items);
+        Assert.Equal(3, item.Streak);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_StreakBreaks_WhenALocalDayIsSkipped()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Run",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.Add(habit);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now, PeriodKey = "today" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-2), PeriodKey = "gap" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        var item = Assert.Single(items);
+        Assert.Equal(1, item.Streak);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_StreakStartsFromYesterday_WhenTodayNotCompleted()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Write",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.Add(habit);
+        context.HabitLogs.AddRange(
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-1), PeriodKey = "yesterday" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-2), PeriodKey = "day-before" },
+            new HabitLog { Id = Guid.NewGuid(), HabitId = habit.Id, UserId = UserId, CompletedAtUtc = now.AddDays(-3), PeriodKey = "three-days" });
+
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        var item = Assert.Single(items);
+        Assert.Equal(3, item.Streak);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_StreakIsZero_WhenNoLogsExist()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Read",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        };
+
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        var item = Assert.Single(items);
+        Assert.Equal(0, item.Streak);
+    }
 }

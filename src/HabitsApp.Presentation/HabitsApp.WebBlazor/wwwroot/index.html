@@ -30,6 +30,20 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        window.HabitsApp = {
+            getBrowserTimeZoneId: function () {
+                try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; }
+                catch { return null; }
+            },
+            getLocalToday: function () {
+                try {
+                    return Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+                }
+                catch { return null; }
+            }
+        };
+    </script>
 </body>
 
 </html>

@@ -245,6 +245,26 @@ app.MapGet("/api/auth/me", async (ClaimsPrincipal principal, IAuthService authSe
 })
 .RequireAuthorization();
 
+app.MapPut("/api/auth/me", async (UpdateProfileCommand command, ClaimsPrincipal principal, IAuthService authService, CancellationToken cancellationToken) =>
+{
+    try
+    {
+        var profile = await authService.UpdateMeAsync(principal, command, cancellationToken);
+        return profile is null ? Results.Unauthorized() : Results.Ok(profile);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Invalid time zone",
+            detail: ex.Message);
+    }
+})
+.RequireAuthorization();
+
+app.MapGet("/api/timezones", (IAuthService authService) =>
+    Results.Ok(authService.GetTimezones()));
+
 app.MapGet("/api/health", async (IDatabaseHealthService healthService) =>
 {
     var start = DateTime.UtcNow;
@@ -294,7 +314,7 @@ habitsGroup.MapGet("/calendar", async (
         return Results.Unauthorized();
     }
 
-    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var today = await habitService.GetLocalTodayAsync(userId, cancellationToken);
     var from = start ?? new DateOnly(today.Year, today.Month, 1);
     var to = end ?? new DateOnly(today.Year, today.Month, 1).AddMonths(1).AddDays(-1);
     var days = await habitService.GetCalendarAsync(userId, from, to, habitId, cancellationToken);

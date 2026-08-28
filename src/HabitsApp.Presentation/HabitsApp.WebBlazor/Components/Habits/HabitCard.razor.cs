@@ -19,7 +19,7 @@ public partial class HabitCard
     private bool IsBusy => _isBusy;
 
     private string StreakLabel
-        => Habit.IsCompletedForPeriod ? "Completed" : "On track";
+        => Habit.Streak > 0 ? $"{Habit.Streak} day streak" : "No streak";
 
     private string ProgressLabel
         => Habit.Frequency switch

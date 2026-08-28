@@ -8,10 +8,6 @@ namespace HabitsApp.WebBlazor.Pages;
 
 public partial class Home
 {
-    private bool isConnected = false;
-    private Guid sessionId = Guid.NewGuid();
-    private Timer? timer;
-
     private LoginForm Model { get; set; } = new();
 
     private bool IsSubmitting { get; set; }
@@ -28,39 +24,10 @@ public partial class Home
 
     protected override async Task OnInitializedAsync()
     {
-        await CheckHealth();
-
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated == true)
         {
             Navigation.NavigateTo("habits", replace: true);
-            return;
-        }
-
-        timer = new Timer(async _ => await CheckHealth(), null,
-            TimeSpan.FromSeconds(30),
-            TimeSpan.FromSeconds(30));
-    }
-
-    private async Task CheckHealth()
-    {
-        try
-        {
-            var start = DateTime.Now;
-            var result = await HealthService.CheckDatabaseHealthAsync();
-            var latency = (DateTime.Now - start).TotalMilliseconds;
-
-            Console.WriteLine($"[{sessionId}] Health check: {(result ? "Success" : "Failed")} (Latency: {latency}ms)");
-            isConnected = result;
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"[{sessionId}] Health check error: {ex.Message}");
-            isConnected = false;
-        }
-        finally
-        {
-            StateHasChanged();
         }
     }
 
@@ -99,17 +66,6 @@ public partial class Home
     private void TogglePassword()
     {
         ShowPassword = !ShowPassword;
-    }
-
-    private async Task HandleLogout()
-    {
-        await AuthStateProvider.LogoutAsync();
-        Navigation.NavigateTo("");
-    }
-
-    public void Dispose()
-    {
-        timer?.Dispose();
     }
 
     private sealed class LoginForm

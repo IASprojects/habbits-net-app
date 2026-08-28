@@ -1,11 +1,7 @@
 namespace HabitsApp.WebBlazor.Models.Auth;
 
-public sealed class UserProfileDto
+public sealed class UpdateProfileRequest
 {
-    public Guid Id { get; set; }
-
-    public string Email { get; set; } = string.Empty;
-
     public string? FirstName { get; set; }
 
     public string? LastName { get; set; }

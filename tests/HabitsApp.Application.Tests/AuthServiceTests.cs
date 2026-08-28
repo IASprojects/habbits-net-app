@@ -183,4 +183,85 @@ public class AuthServiceTests
         Assert.False(result.Succeeded);
         Assert.Equal(401, result.StatusCode);
     }
+
+    [Fact]
+    public async Task UpdateMeAsync_PersistsTimeZoneAndRoundTrips()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var userManager = CreateUserManager(context);
+
+        var user = new ApplicationUser { Id = Guid.NewGuid(), UserName = "a@b.com", Email = "a@b.com", SecurityStamp = Guid.NewGuid().ToString() };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var authService = CreateAuthService(userManager, context);
+        var result = await authService.UpdateMeAsync(
+            CreatePrincipal(user.Id),
+            new UpdateProfileCommand { TimeZoneId = "America/New_York" });
+
+        Assert.NotNull(result);
+        Assert.Equal("America/New_York", result!.TimeZoneId);
+
+        var profile = await authService.GetCurrentUserAsync(CreatePrincipal(user.Id));
+        Assert.Equal("America/New_York", profile!.TimeZoneId);
+    }
+
+    [Fact]
+    public async Task UpdateMeAsync_ClearsTimeZone_WhenValueIsEmpty()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var userManager = CreateUserManager(context);
+
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = "a@b.com",
+            Email = "a@b.com",
+            SecurityStamp = Guid.NewGuid().ToString(),
+            TimeZoneId = "America/New_York"
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var authService = CreateAuthService(userManager, context);
+        var result = await authService.UpdateMeAsync(
+            CreatePrincipal(user.Id),
+            new UpdateProfileCommand { TimeZoneId = "" });
+
+        Assert.NotNull(result);
+        Assert.Null(result!.TimeZoneId);
+    }
+
+    [Fact]
+    public async Task UpdateMeAsync_Throws_ForInvalidTimeZone()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var userManager = CreateUserManager(context);
+
+        var user = new ApplicationUser { Id = Guid.NewGuid(), UserName = "a@b.com", Email = "a@b.com", SecurityStamp = Guid.NewGuid().ToString() };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var authService = CreateAuthService(userManager, context);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => authService.UpdateMeAsync(
+            CreatePrincipal(user.Id),
+            new UpdateProfileCommand { TimeZoneId = "Not/AZone" }));
+    }
+
+    [Fact]
+    public void GetTimezones_ReturnsNonEmptyServerList()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var authService = CreateAuthService(CreateUserManager(context), context);
+
+        var timezones = authService.GetTimezones();
+
+        Assert.NotEmpty(timezones);
+        Assert.All(timezones, tz =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(tz.Id));
+            Assert.False(string.IsNullOrWhiteSpace(tz.DisplayName));
+        });
+    }
 }
