@@ -8,5 +8,7 @@ public sealed class ApplicationUser : IdentityUser<Guid>
 
     public string? LastName { get; set; }
 
+    public string? TimeZoneId { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

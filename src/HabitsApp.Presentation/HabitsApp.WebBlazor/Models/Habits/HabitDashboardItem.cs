@@ -17,4 +17,6 @@ public sealed class HabitDashboardItem
     public int CurrentPeriodCount { get; set; }
 
     public bool IsCompletedForPeriod { get; set; }
+
+    public int Streak { get; set; }
 }

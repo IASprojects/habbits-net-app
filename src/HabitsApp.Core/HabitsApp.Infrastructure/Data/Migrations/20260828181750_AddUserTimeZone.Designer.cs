@@ -3,6 +3,7 @@ using System;
 using HabitsApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HabitsApp.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260828181750_AddUserTimeZone")]
+    partial class AddUserTimeZone
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -157,11 +160,6 @@ namespace HabitsApp.Infrastructure.Data.Migrations
                     b.Property<Guid>("HabitId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("HourKey")
-                        .IsRequired()
-                        .HasMaxLength(13)
-                        .HasColumnType("character varying(13)");
-
                     b.Property<string>("PeriodKey")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -174,7 +172,7 @@ namespace HabitsApp.Infrastructure.Data.Migrations
 
                     b.HasIndex("HabitId", "CompletedAtUtc");
 
-                    b.HasIndex("HabitId", "HourKey")
+                    b.HasIndex("HabitId", "PeriodKey")
                         .IsUnique();
 
                     b.ToTable("HabitLogs");

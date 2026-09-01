@@ -18,6 +18,8 @@ public partial class Calendar
 
     private ViewMode mode = ViewMode.Month;
 
+    private DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
+
     private DateOnly anchorDate = DateOnly.FromDateTime(DateTime.UtcNow);
 
     private List<HabitDashboardItem> habits = [];
@@ -31,6 +33,8 @@ public partial class Calendar
     private string? errorMessage;
 
     [Inject] private IHabitService HabitService { get; set; } = default!;
+
+    [Inject] private TimeZoneJsInterop TimeZoneJsInterop { get; set; } = default!;
 
     private bool IsMonthMode => mode == ViewMode.Month;
 
@@ -54,6 +58,10 @@ public partial class Calendar
 
     protected override async Task OnInitializedAsync()
     {
+        var localToday = await TimeZoneJsInterop.GetLocalTodayAsync();
+        today = localToday ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        anchorDate = today;
+
         await LoadHabitsAsync();
         await LoadCalendarDaysAsync();
     }
@@ -93,7 +101,8 @@ public partial class Calendar
 
     private async Task GoToday()
     {
-        anchorDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        var localToday = await TimeZoneJsInterop.GetLocalTodayAsync();
+        anchorDate = localToday ?? today;
         await LoadCalendarDaysAsync();
     }
 
@@ -185,7 +194,7 @@ public partial class Calendar
     }
 
     private bool IsToday(DateOnly day)
-        => day == DateOnly.FromDateTime(DateTime.UtcNow);
+        => day == today;
 
     private IReadOnlyList<string> GetColors(DateOnly day)
     {

@@ -191,14 +191,96 @@ public sealed class AuthService : IAuthService
             return null;
         }
 
-        return new UserProfileDto
+        return ToProfile(user);
+    }
+
+    public async Task<UserProfileDto?> UpdateMeAsync(ClaimsPrincipal principal, UpdateProfileCommand command, CancellationToken cancellationToken = default)
+    {
+        var userId = principal.FindFirstValue("sub");
+        if (userId is null || !Guid.TryParse(userId, out _))
+        {
+            return null;
+        }
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return null;
+        }
+
+        if (command.FirstName is not null)
+        {
+            user.FirstName = command.FirstName;
+        }
+
+        if (command.LastName is not null)
+        {
+            user.LastName = command.LastName;
+        }
+
+        if (command.TimeZoneId is not null)
+        {
+            if (string.IsNullOrWhiteSpace(command.TimeZoneId))
+            {
+                user.TimeZoneId = null;
+            }
+            else if (!IsValidTimeZone(command.TimeZoneId))
+            {
+                throw new ArgumentException("The provided time zone identifier is invalid.", nameof(command.TimeZoneId));
+            }
+            else
+            {
+                user.TimeZoneId = command.TimeZoneId;
+            }
+        }
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            throw new InvalidOperationException("Failed to update the user profile.");
+        }
+
+        _logger.LogInformation("User {UserId} updated their profile.", user.Id);
+
+        return ToProfile(user);
+    }
+
+    public IReadOnlyList<TimeZoneDto> GetTimezones()
+        => TimeZoneInfo.GetSystemTimeZones()
+            .Select(tz => new TimeZoneDto
+            {
+                Id = tz.Id,
+                DisplayName = tz.DisplayName,
+                BaseUtcOffset = tz.BaseUtcOffset
+            })
+            .ToList();
+
+    private static bool IsValidTimeZone(string timeZoneId)
+    {
+        try
+        {
+            _ = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            return true;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return false;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return false;
+        }
+    }
+
+    private static UserProfileDto ToProfile(ApplicationUser user)
+        => new()
         {
             Id = user.Id,
             Email = user.Email ?? string.Empty,
             FirstName = user.FirstName,
-            LastName = user.LastName
+            LastName = user.LastName,
+            TimeZoneId = user.TimeZoneId
         };
-    }
 
     private async Task<AuthResponse> IssueTokenPairAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
@@ -221,13 +303,7 @@ public sealed class AuthService : IAuthService
             AccessToken = accessToken,
             ExpiresIn = _jwtSettings.ExpiryMinutes * 60,
             RefreshToken = refreshToken,
-            User = new UserProfileDto
-            {
-                Id = user.Id,
-                Email = user.Email ?? string.Empty,
-                FirstName = user.FirstName,
-                LastName = user.LastName
-            }
+            User = ToProfile(user)
         };
     }
 

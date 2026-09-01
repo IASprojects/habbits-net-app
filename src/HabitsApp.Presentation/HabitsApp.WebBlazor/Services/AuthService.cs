@@ -50,6 +50,18 @@ public sealed class AuthService : IAuthService
         return await HandleResponseAsync<UserProfileDto>(response, cancellationToken);
     }
 
+    public async Task<UserProfileDto?> UpdateMeAsync(UpdateProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync("/api/auth/me", request, cancellationToken);
+        return await HandleResponseAsync<UserProfileDto>(response, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<TimeZoneDto>> GetTimezonesAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("/api/timezones", cancellationToken);
+        return await HandleResponseAsync<IReadOnlyList<TimeZoneDto>>(response, cancellationToken);
+    }
+
     private static async Task<T> HandleResponseAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)

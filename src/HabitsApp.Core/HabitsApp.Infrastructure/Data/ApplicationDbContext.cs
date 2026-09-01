@@ -32,6 +32,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(u => u.TimeZoneId).HasMaxLength(64);
+        });
+
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasKey(rt => rt.Id);

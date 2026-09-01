@@ -1,0 +1,81 @@
+@page "/settings"
+@attribute [Authorize]
+@implements IDisposable
+
+<div class="stack-lg">
+    <section class="settings-head">
+        <p class="label-caps settings-head__eyebrow">App</p>
+        <h1 class="settings-head__title">Settings</h1>
+    </section>
+
+    <div class="stack-md">
+        <section class="glass-panel glass-panel--settings">
+            <header class="settings-segment__header">
+                <span class="material-symbols-outlined settings-segment__icon">monitor_heart</span>
+                <div>
+                    <h2 class="settings-segment__title">Server Status</h2>
+                    <p class="settings-segment__sub">Connection health of the HabitsApp service.</p>
+                </div>
+            </header>
+
+            <div class="settings-status" role="status">
+                <span class="dot @(isConnected ? "dot--success" : "dot--error")"></span>
+                <span class="settings-status__label @(isConnected ? "" : "settings-status__label--error")">@(isConnected ? "Online" : "Offline")</span>
+            </div>
+        </section>
+
+        <section class="glass-panel glass-panel--settings">
+            <header class="settings-segment__header">
+                <span class="material-symbols-outlined settings-segment__icon">schedule</span>
+                <div>
+                    <h2 class="settings-segment__title">Time Zone</h2>
+                    <p class="settings-segment__sub">Habit resets, streaks and the calendar use your local day.</p>
+                </div>
+            </header>
+
+            @if (isLoadingProfile)
+            {
+                <p class="settings-status__label">Loading…</p>
+            }
+            else if (profile is not null)
+            {
+                <div class="stack-sm">
+                    <div class="field-group">
+                        <label class="field-label" for="timezone-select">Timezone</label>
+                        <select id="timezone-select" class="field" @bind="selectedTimeZoneId" disabled="@IsSavingTimeZone">
+                            @foreach (var tz in timezones)
+                            {
+                                <option value="@tz.Id">@tz.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <p class="field-hint">Your day begins and habits reset at midnight in this timezone.</p>
+
+                    @if (!string.IsNullOrWhiteSpace(timeZoneMessage))
+                    {
+                        <p class="@(isTimeZoneError ? "validation-message" : "settings-status__label")" style="margin:0;">@timeZoneMessage</p>
+                    }
+
+                    <button class="btn btn-secondary btn-block" @onclick="SaveTimeZoneAsync" disabled="@(IsSavingTimeZone || !IsTimeZoneDirty)">
+                        @(IsSavingTimeZone ? "Saving…" : "Save")
+                    </button>
+                </div>
+            }
+        </section>
+
+        <section class="glass-panel glass-panel--settings">
+            <header class="settings-segment__header">
+                <span class="material-symbols-outlined settings-segment__icon">logout</span>
+                <div>
+                    <h2 class="settings-segment__title">Account</h2>
+                    <p class="settings-segment__sub">Sign out of the app on this device.</p>
+                </div>
+            </header>
+
+            <button class="btn btn-secondary btn-block" @onclick="HandleLogout">
+                Logout
+            </button>
+        </section>
+    </div>
+</div>

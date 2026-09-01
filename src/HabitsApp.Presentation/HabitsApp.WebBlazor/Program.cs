@@ -28,5 +28,6 @@ builder.Services.AddScoped(sp =>
 
 builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddScoped<IHabitService, HabitService>();
+builder.Services.AddScoped<TimeZoneJsInterop>();
 
 await builder.Build().RunAsync();
