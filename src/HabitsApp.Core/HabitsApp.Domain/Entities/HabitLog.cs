@@ -11,4 +11,6 @@ public sealed class HabitLog
     public DateTime CompletedAtUtc { get; set; }
 
     public string PeriodKey { get; set; } = string.Empty;
+
+    public string HourKey { get; set; } = string.Empty;
 }

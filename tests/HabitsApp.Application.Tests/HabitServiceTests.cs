@@ -1,5 +1,6 @@
 using HabitsApp.Api.Services;
 using HabitsApp.Application.Contracts.Habits;
+using HabitsApp.Application.Services;
 using HabitsApp.Domain.Entities;
 using HabitsApp.Domain.Enums;
 using HabitsApp.Infrastructure.Abstractions;
@@ -192,6 +193,123 @@ public class HabitServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(404, result.StatusCode);
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_TargetCountGreaterThanOne_IncrementsAcrossHours()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Brush Teeth",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 3,
+            CreatedAtUtc = now
+        };
+
+        var seedTime = now.Hour == 0 ? now.Date.AddHours(8) : now.AddHours(-1);
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = seedTime,
+            PeriodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, seedTime),
+            HourKey = HabitPeriodCalculator.GetHourKey(seedTime)
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.CurrentPeriodCount < result.Data.TargetCount);
+        Assert.Equal(2, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_DeduplicatesSameHour()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Brush Teeth",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 3,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+
+        var first = await service.QuickLogAsync(UserId, habit.Id);
+        var second = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.Equal(1, first.Data!.CurrentPeriodCount);
+        Assert.Equal(1, second.Data!.CurrentPeriodCount);
+        Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_StopsAtTargetCount()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Brush Teeth",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 2,
+            CreatedAtUtc = now
+        };
+
+        var seedTime = now.Hour == 0 ? now.Date.AddHours(8) : now.AddHours(-1);
+        var earlierSeed = seedTime.AddHours(-1);
+        context.Habits.Add(habit);
+        context.HabitLogs.AddRange(
+            new HabitLog
+            {
+                Id = Guid.NewGuid(),
+                HabitId = habit.Id,
+                UserId = UserId,
+                CompletedAtUtc = seedTime,
+                PeriodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, seedTime),
+                HourKey = HabitPeriodCalculator.GetHourKey(seedTime)
+            },
+            new HabitLog
+            {
+                Id = Guid.NewGuid(),
+                HabitId = habit.Id,
+                UserId = UserId,
+                CompletedAtUtc = earlierSeed,
+                PeriodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, earlierSeed),
+                HourKey = HabitPeriodCalculator.GetHourKey(earlierSeed)
+            });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(2, await context.HabitLogs.CountAsync());
     }
 
     [Fact]

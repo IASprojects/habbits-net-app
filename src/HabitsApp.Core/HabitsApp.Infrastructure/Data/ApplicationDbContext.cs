@@ -66,7 +66,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(l => l.UserId).IsRequired();
             entity.Property(l => l.CompletedAtUtc).IsRequired();
             entity.Property(l => l.PeriodKey).HasMaxLength(16).IsRequired();
-            entity.HasIndex(l => new { l.HabitId, l.PeriodKey }).IsUnique();
+            entity.Property(l => l.HourKey).HasMaxLength(13).IsRequired();
+            entity.HasIndex(l => new { l.HabitId, l.HourKey }).IsUnique();
             entity.HasIndex(l => new { l.HabitId, l.CompletedAtUtc });
             entity.HasOne<Habit>()
                 .WithMany(h => h.Logs)

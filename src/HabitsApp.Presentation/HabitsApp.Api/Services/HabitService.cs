@@ -97,7 +97,7 @@ public sealed class HabitService : IHabitService
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
+        return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
     }
 
     public async Task<HabitResult> QuickLogAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
@@ -112,14 +112,31 @@ public sealed class HabitService : IHabitService
         }
 
         var now = DateTime.UtcNow;
-        var periodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, now);
+        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
+        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+        var hourKey = HabitPeriodCalculator.GetHourKey(now);
+
+        var currentPeriodCount = await _dbContext.HabitLogs
+            .CountAsync(l =>
+                l.HabitId == habitId &&
+                l.CompletedAtUtc >= windowStart &&
+                l.CompletedAtUtc < windowEnd &&
+                l.UserId == userId,
+                cancellationToken);
+
+        if (currentPeriodCount >= habit.TargetCount)
+        {
+            return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
+        }
 
         var existing = await _dbContext.HabitLogs
-            .FirstOrDefaultAsync(l => l.HabitId == habitId && l.PeriodKey == periodKey, cancellationToken);
+            .FirstOrDefaultAsync(l => l.HabitId == habitId && l.HourKey == hourKey && l.UserId == userId, cancellationToken);
         if (existing is not null)
         {
-            return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
+            return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
         }
+
+        var periodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, now);
 
         _dbContext.HabitLogs.Add(new HabitLog
         {
@@ -127,7 +144,8 @@ public sealed class HabitService : IHabitService
             HabitId = habitId,
             UserId = userId,
             CompletedAtUtc = now,
-            PeriodKey = periodKey
+            PeriodKey = periodKey,
+            HourKey = hourKey
         });
 
         try
@@ -136,10 +154,10 @@ public sealed class HabitService : IHabitService
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
         {
-            _logger.LogWarning(ex, "Quick log race detected for habit {HabitId} in period {PeriodKey}; treating as idempotent.", habitId, periodKey);
+            _logger.LogWarning(ex, "Quick log race detected for habit {HabitId} in hour {HourKey}; treating as idempotent.", habitId, hourKey);
         }
 
-        return HabitResult.Success(await BuildDashboardItemAsync(habit, cancellationToken));
+        return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
     }
 
     public async Task<HabitResult> ArchiveAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
@@ -175,7 +193,7 @@ public sealed class HabitService : IHabitService
 
         var logsQuery = _dbContext.HabitLogs
             .AsNoTracking()
-            .Where(l => l.CompletedAtUtc >= startUtc && l.CompletedAtUtc < endUtcExclusive);
+            .Where(l => l.CompletedAtUtc >= startUtc && l.CompletedAtUtc < endUtcExclusive && l.UserId == userId);
 
         if (habitId.HasValue)
         {
@@ -211,7 +229,7 @@ public sealed class HabitService : IHabitService
             .ToList();
     }
 
-    private async Task<HabitDashboardItemDto> BuildDashboardItemAsync(Habit habit, CancellationToken cancellationToken)
+    private async Task<HabitDashboardItemDto> BuildDashboardItemAsync(Guid userId, Habit habit, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
         var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
@@ -221,7 +239,8 @@ public sealed class HabitService : IHabitService
             .CountAsync(l =>
                 l.HabitId == habit.Id &&
                 l.CompletedAtUtc >= windowStart &&
-                l.CompletedAtUtc < windowEnd,
+                l.CompletedAtUtc < windowEnd &&
+                l.UserId == userId,
                 cancellationToken);
 
         return ToDto(habit, currentPeriodCount);
