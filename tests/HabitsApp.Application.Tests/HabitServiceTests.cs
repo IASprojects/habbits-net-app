@@ -1,7 +1,6 @@
 using HabitsApp.Api.Services;
 using HabitsApp.Application.Services;
 using HabitsApp.Application.Contracts.Habits;
-using HabitsApp.Application.Services;
 using HabitsApp.Domain.Entities;
 using HabitsApp.Domain.Enums;
 using HabitsApp.Infrastructure.Abstractions;
