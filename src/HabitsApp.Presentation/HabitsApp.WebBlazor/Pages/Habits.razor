@@ -63,7 +63,7 @@
             <div class="habits-list">
                 @foreach (var habit in HabitItems)
                 {
-                    <HabitCard Habit="@habit" OnEdit="@OpenEdit" OnQuickLog="@HandleQuickLog" OnInactivate="@RequestInactivate" />
+                    <HabitCard Habit="@habit" OnEdit="@OpenEdit" OnQuickLog="@HandleQuickLog" />
                 }
             </div>
         }
@@ -80,6 +80,7 @@
                 ErrorMessage="@ModalErrorMessage"
                 OnSave="@HandleModalSave"
                 OnReactivate="@RequestReactivate"
+                OnInactivate="@RequestInactivate"
                 OnClose="@CloseModal" />
 
 <ConfirmDialog IsOpen="@ShowInactivateConfirm"

@@ -226,6 +226,8 @@ public partial class Habits
             await HabitService.InactivateAsync(habit.Id);
             ShowInactivateConfirm = false;
             PendingActionHabit = null;
+            EditingHabit = null;
+            ShowModal = false;
             await LoadHabitsAsync();
         }
         catch (ApiException ex)

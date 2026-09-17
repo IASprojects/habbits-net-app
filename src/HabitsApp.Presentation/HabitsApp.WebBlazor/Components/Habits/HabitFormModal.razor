@@ -64,12 +64,16 @@
                 </div>
 
                 <div class="modal__footer">
-                    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsSaving">Cancel</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@(IsSaving || ControlsDisabled)">Cancel</button>
+                    @if (Habit is not null && !IsReadOnly)
+                    {
+                        <button type="button" class="btn btn-warning" @onclick="HandleInactivateAsync" disabled="@(IsSaving || ControlsDisabled)">Inactivate</button>
+                    }
                     @if (IsReadOnly)
                     {
                         <button type="button" class="btn btn-primary" @onclick="HandleReactivateAsync" disabled="@IsSaving">Reactivar</button>
                     }
-                    <button type="submit" class="btn btn-primary" disabled="@(IsSaving || IsReadOnly)">@(IsSaving ? "Saving…" : "Save")</button>
+                    <button type="submit" class="btn btn-primary" disabled="@(IsSaving || IsReadOnly || ControlsDisabled)">@(IsSaving ? "Saving…" : "Save")</button>
                 </div>
             </EditForm>
         </div>

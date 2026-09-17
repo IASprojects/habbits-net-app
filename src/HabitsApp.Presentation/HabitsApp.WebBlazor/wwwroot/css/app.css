@@ -1500,25 +1500,6 @@ input:-webkit-autofill:active {
     color: var(--color-primary);
 }
 
-.habit-card__inactivate {
-    align-self: flex-start;
-    padding: 10px var(--space-md);
-    border: 1px solid rgba(255, 180, 171, 0.35);
-    border-radius: 12px;
-    background: rgba(147, 0, 10, 0.18);
-    color: var(--color-error);
-    font-family: var(--font-family);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.habit-card__inactivate:hover {
-    background: rgba(147, 0, 10, 0.3);
-    border-color: rgba(255, 180, 171, 0.6);
-}
-
 .habits-view-switch {
     width: 100%;
 }
