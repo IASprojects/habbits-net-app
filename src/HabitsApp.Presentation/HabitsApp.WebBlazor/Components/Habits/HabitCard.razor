@@ -40,9 +40,4 @@
             }
         </div>
     </div>
-
-    @if (Habit.IsActive)
-    {
-        <button class="habit-card__inactivate" title="Inactivate habit" @onclick="() => OnInactivate.InvokeAsync(Habit)">Inactivar</button>
-    }
 </div>

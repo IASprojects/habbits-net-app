@@ -44,6 +44,12 @@ public partial class HabitFormModal
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    [Parameter]
+    public EventCallback<HabitDashboardItem> OnInactivate { get; set; }
+
+    [Parameter]
+    public bool ControlsDisabled { get; set; }
+
     private bool IsReadOnly => Habit is not null && !Habit.IsActive;
 
     protected override void OnParametersSet()
@@ -102,6 +108,9 @@ public partial class HabitFormModal
 
     private async Task HandleReactivateAsync()
         => await OnReactivate.InvokeAsync(Habit);
+
+    private async Task HandleInactivateAsync()
+        => await OnInactivate.InvokeAsync(Habit);
 
     private async Task Close()
         => await OnClose.InvokeAsync();
