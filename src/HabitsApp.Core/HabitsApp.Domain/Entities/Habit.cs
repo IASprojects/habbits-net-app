@@ -18,6 +18,8 @@ public sealed class Habit
 
     public int TargetCount { get; set; } = 1;
 
+    public bool IsActive { get; set; } = true;
+
     public bool IsArchived { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }

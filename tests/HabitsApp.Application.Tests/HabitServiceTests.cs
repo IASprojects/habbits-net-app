@@ -34,6 +34,17 @@ public class HabitServiceTests
         return context;
     }
 
+    private static ApplicationDbContext CreateScopedContext(string dbName, Guid scopedUserId)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(dbName)
+            .Options;
+
+        var context = new ApplicationDbContext(options, new TestCurrentUserService(scopedUserId));
+        context.Database.EnsureCreated();
+        return context;
+    }
+
     [Fact]
     public async Task CreateAsync_AddsHabitWithOwnershipAndCreatedAt()
     {
@@ -563,7 +574,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task ArchiveAsync_ArchivesHabitAndHidesFromDashboard()
+    public async Task ArchiveAsync_ArchivesHabit_WithoutAffectingIsActiveDashboardFilter()
     {
         using var context = CreateContext(Guid.NewGuid().ToString());
 
@@ -587,9 +598,11 @@ public class HabitServiceTests
 
         var archived = await context.Habits.SingleAsync();
         Assert.True(archived.IsArchived);
+        Assert.True(archived.IsActive);
 
         var dashboard = await service.GetDashboardAsync(UserId);
-        Assert.Empty(dashboard);
+        Assert.Single(dashboard);
+        Assert.True(Assert.Single(dashboard).IsActive);
     }
 
     [Fact]
@@ -845,5 +858,409 @@ public class HabitServiceTests
 
         var item = Assert.Single(items);
         Assert.Equal(0, item.Streak);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_ReturnsActiveHabits_ByDefault()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        context.Habits.AddRange(
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Active habit",
+                Frequency = FrequencyType.Daily,
+                TargetCount = 1,
+                CreatedAtUtc = now
+            },
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Inactive habit",
+                Frequency = FrequencyType.Daily,
+                TargetCount = 1,
+                IsActive = false,
+                CreatedAtUtc = now
+            });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        Assert.Single(items);
+        Assert.True(Assert.Single(items).IsActive);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_InactiveFilter_ReturnsOnlyInactiveHabits()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        context.Habits.AddRange(
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Active habit",
+                Frequency = FrequencyType.Daily,
+                TargetCount = 1,
+                CreatedAtUtc = now
+            },
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Inactive habit",
+                Frequency = FrequencyType.Daily,
+                TargetCount = 1,
+                IsActive = false,
+                CreatedAtUtc = now
+            });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId, false);
+
+        Assert.Single(items);
+        var item = Assert.Single(items);
+        Assert.False(item.IsActive);
+        Assert.Equal("Inactive habit", item.Title);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_NeverReturnsAnotherUsersHabits()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var otherUser = Guid.NewGuid();
+        context.Habits.Add(new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var items = await service.GetDashboardAsync(UserId);
+
+        Assert.Empty(items);
+    }
+
+    [Fact]
+    public async Task IsActive_ColumnIsNonNullableWithDefaultTrue_AndNewHabitsAreActive()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var entity = context.Model.FindEntityType("HabitsApp.Domain.Entities.Habit");
+        Assert.NotNull(entity);
+        Assert.False(entity.GetProperty("IsActive").IsNullable);
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.CreateAsync(UserId, new CreateHabitDto
+        {
+            Title = "Meditate",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Data);
+        Assert.True(result.Data.IsActive);
+        Assert.True((await context.Habits.SingleAsync()).IsActive);
+    }
+
+    [Fact]
+    public async Task InactivateAsync_SetsInactive_KeepsLogs_AndDoesNotChangeIsArchived()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Gym",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsArchived = false,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = now.AddDays(-1),
+            PeriodKey = "yesterday"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.InactivateAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Data);
+        Assert.False(result.Data.IsActive);
+
+        var saved = await context.Habits.SingleAsync();
+        Assert.False(saved.IsActive);
+        Assert.False(saved.IsArchived);
+        Assert.NotNull(saved.UpdatedAtUtc);
+        Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task InactivateAsync_RepeatedCall_IsIdempotentNoOp_WithoutChangingTimestampOrLogs()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Gym",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsArchived = false,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = now.AddDays(-1),
+            PeriodKey = "yesterday"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var first = await service.InactivateAsync(UserId, habit.Id);
+        var updatedAtAfterFirst = (await context.Habits.SingleAsync()).UpdatedAtUtc;
+
+        var second = await service.InactivateAsync(UserId, habit.Id);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+
+        var saved = await context.Habits.SingleAsync();
+        Assert.False(saved.IsActive);
+        Assert.Equal(updatedAtAfterFirst, saved.UpdatedAtUtc);
+        Assert.False(saved.IsArchived);
+        Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task InactivateAsync_ReturnsNotFound_ForOtherUsersHabit_WithoutModifyingIt()
+    {
+        var otherUser = Guid.NewGuid();
+        using var context = CreateScopedContext(Guid.NewGuid().ToString(), otherUser);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsArchived = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.InactivateAsync(UserId, habit.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+
+        var other = await context.Habits.SingleAsync();
+        Assert.True(other.IsActive);
+        Assert.False(other.IsArchived);
+        Assert.Null(other.UpdatedAtUtc);
+        Assert.Equal(0, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_SetsActive_KeepsLogs_DoesNotChangeIsArchived_AndReturnsProgress()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Gym",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 2,
+            IsActive = false,
+            IsArchived = false,
+            CreatedAtUtc = now
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = now,
+            PeriodKey = "current"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.ReactivateAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Data);
+        Assert.True(result.Data.IsActive);
+        Assert.Equal(1, result.Data.CurrentPeriodCount);
+
+        var saved = await context.Habits.SingleAsync();
+        Assert.True(saved.IsActive);
+        Assert.False(saved.IsArchived);
+        Assert.NotNull(saved.UpdatedAtUtc);
+        Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task ReactivateAsync_ReturnsNotFound_ForOtherUsersHabit_WithoutChangingTheirState()
+    {
+        var otherUser = Guid.NewGuid();
+        using var context = CreateScopedContext(Guid.NewGuid().ToString(), otherUser);
+
+        var updatedAt = DateTime.UtcNow.AddDays(-2);
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsActive = false,
+            IsArchived = true,
+            UpdatedAtUtc = updatedAt,
+            CreatedAtUtc = DateTime.UtcNow.AddDays(-10)
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = otherUser,
+            CompletedAtUtc = updatedAt,
+            PeriodKey = "old"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.ReactivateAsync(UserId, habit.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+
+        var other = await context.Habits.SingleAsync();
+        Assert.False(other.IsActive);
+        Assert.True(other.IsArchived);
+        Assert.Equal(updatedAt, other.UpdatedAtUtc);
+        Assert.Equal(1, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ReturnsConflict_ForOwnedInactiveHabit_AndDoesNotApplyChanges()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Old Title",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsActive = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
+        {
+            Title = "Tampered",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(409, result.StatusCode);
+        Assert.Equal("Old Title", (await context.Habits.SingleAsync()).Title);
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_ReturnsNotFound_ForInactiveHabitOfAnotherUser_WithoutRevealingState()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var otherUser = Guid.NewGuid();
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = otherUser,
+            Title = "Secret",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsActive = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(404, result.StatusCode);
+        Assert.Equal(0, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_ReturnsConflict_ForOwnedInactiveHabit_AndPerformsNoWork()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Gym",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            IsActive = false,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(409, result.StatusCode);
+        Assert.Equal(0, await context.HabitLogs.CountAsync());
     }
 }

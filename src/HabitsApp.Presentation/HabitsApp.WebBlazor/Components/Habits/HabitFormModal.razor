@@ -3,7 +3,7 @@
     <div class="modal-overlay" @onclick="Close">
         <div class="modal" @onclick:stopPropagation>
             <div class="modal__head">
-                <h3 class="headline-md">@(Habit is null ? "New Habit" : "Edit Habit")</h3>
+                <h3 class="headline-md">@(Habit is null ? "New Habit" : IsReadOnly ? "View Habit" : "Edit Habit")</h3>
                 <button class="modal__close" title="Close" aria-label="Close" @onclick="Close">
                     <span class="material-symbols-outlined">close</span>
                 </button>
@@ -19,13 +19,13 @@
 
                 <div class="habit-form__field">
                     <label class="field-label" for="habit-title">Title</label>
-                    <InputText id="habit-title" class="field" @bind-Value="Form.Title" placeholder="e.g. Morning meditation" />
+                    <InputText id="habit-title" class="field" @bind-Value="Form.Title" disabled="@IsReadOnly" placeholder="e.g. Morning meditation" />
                     <ValidationMessage For="@(() => Form.Title)" />
                 </div>
 
                 <div class="habit-form__field">
                     <label class="field-label" for="habit-description">Description</label>
-                    <InputText id="habit-description" class="field" @bind-Value="Form.Description" placeholder="Optional note" />
+                    <InputText id="habit-description" class="field" @bind-Value="Form.Description" disabled="@IsReadOnly" placeholder="Optional note" />
                 </div>
 
                 <div class="habit-form__field">
@@ -38,6 +38,7 @@
                                     style="background: @color;"
                                     title="@color"
                                     aria-label="@color"
+                                    disabled="@IsReadOnly"
                                     @onclick="() => SelectColor(color)"></button>
                         }
                     </div>
@@ -50,6 +51,7 @@
                         {
                             <button type="button"
                                     class="habit-form__segment @(Form.Frequency == frequency ? "habit-form__segment--selected" : "")"
+                                    disabled="@IsReadOnly"
                                     @onclick="() => SelectFrequency(frequency)">@frequency</button>
                         }
                     </div>
@@ -57,13 +59,17 @@
 
                 <div class="habit-form__field">
                     <label class="field-label" for="habit-target">Target per period</label>
-                    <InputNumber id="habit-target" class="field" @bind-Value="Form.TargetCount" />
+                    <InputNumber id="habit-target" class="field" @bind-Value="Form.TargetCount" disabled="@IsReadOnly" />
                     <ValidationMessage For="@(() => Form.TargetCount)" />
                 </div>
 
                 <div class="modal__footer">
                     <button type="button" class="btn btn-secondary" @onclick="Close" disabled="@IsSaving">Cancel</button>
-                    <button type="submit" class="btn btn-primary" disabled="@IsSaving">@(IsSaving ? "Saving…" : "Save")</button>
+                    @if (IsReadOnly)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="HandleReactivateAsync" disabled="@IsSaving">Reactivar</button>
+                    }
+                    <button type="submit" class="btn btn-primary" disabled="@(IsSaving || IsReadOnly)">@(IsSaving ? "Saving…" : "Save")</button>
                 </div>
             </EditForm>
         </div>

@@ -4,7 +4,7 @@ namespace HabitsApp.WebBlazor.Services;
 
 public interface IHabitService
 {
-    Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CalendarDay>> GetCalendarAsync(
         DateOnly start,
@@ -18,5 +18,7 @@ public interface IHabitService
 
     Task<HabitDashboardItem> QuickLogAsync(Guid habitId, CancellationToken cancellationToken = default);
 
-    Task ArchiveAsync(Guid habitId, CancellationToken cancellationToken = default);
+    Task InactivateAsync(Guid habitId, CancellationToken cancellationToken = default);
+
+    Task<HabitDashboardItem> ReactivateAsync(Guid habitId, CancellationToken cancellationToken = default);
 }

@@ -13,9 +13,9 @@ public sealed class HabitService : IHabitService
         _httpClient = httpClient;
     }
 
-    public async Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync("/api/habits", cancellationToken);
+        var response = await _httpClient.GetAsync($"/api/habits?activeOnly={activeOnly}", cancellationToken);
         return await HandleResponseAsync<IReadOnlyList<HabitDashboardItem>>(response, cancellationToken);
     }
 
@@ -53,13 +53,19 @@ public sealed class HabitService : IHabitService
         return await HandleResponseAsync<HabitDashboardItem>(response, cancellationToken);
     }
 
-    public async Task ArchiveAsync(Guid habitId, CancellationToken cancellationToken = default)
+    public async Task InactivateAsync(Guid habitId, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.DeleteAsync($"/api/habits/{habitId}", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             await ReadAndThrowAsync(response, cancellationToken);
         }
+    }
+
+    public async Task<HabitDashboardItem> ReactivateAsync(Guid habitId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"/api/habits/{habitId}/restore", new { }, cancellationToken);
+        return await HandleResponseAsync<HabitDashboardItem>(response, cancellationToken);
     }
 
     private static async Task<T> HandleResponseAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

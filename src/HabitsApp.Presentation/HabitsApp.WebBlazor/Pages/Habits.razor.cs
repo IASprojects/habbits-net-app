@@ -1,3 +1,4 @@
+using HabitsApp.WebBlazor.Components;
 using HabitsApp.WebBlazor.Components.Habits;
 using HabitsApp.WebBlazor.Models.Habits;
 using HabitsApp.WebBlazor.Services;
@@ -12,6 +13,8 @@ public partial class Habits
 
     private bool IsLoading { get; set; } = true;
 
+    private bool ActiveOnly { get; set; } = true;
+
     private bool ShowModal { get; set; }
 
     private bool IsSaving { get; set; }
@@ -24,13 +27,23 @@ public partial class Habits
 
     private string? ModalErrorMessage { get; set; }
 
+    private bool ShowInactivateConfirm { get; set; }
+
+    private bool ShowRestoreConfirm { get; set; }
+
+    private bool IsConfirmBusy { get; set; }
+
+    private HabitDashboardItem? PendingActionHabit { get; set; }
+
+    private string? ConfirmErrorMessage { get; set; }
+
     [Inject] private IHabitService HabitService { get; set; } = default!;
 
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
 
-    private int TotalCount => HabitItems.Count;
+    private int TotalCount => HabitItems.Count(h => h.IsActive);
 
-    private int CompletedCount => HabitItems.Count(h => h.IsCompletedForPeriod);
+    private int CompletedCount => HabitItems.Count(h => h.IsActive && h.IsCompletedForPeriod);
 
     private int MomentumPercent => TotalCount == 0 ? 0 : (int)Math.Round(CompletedCount * 100.0 / TotalCount);
 
@@ -50,7 +63,7 @@ public partial class Habits
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             FirstName = authState.User.FindFirst("given_name")?.Value ?? "there";
 
-            var items = await HabitService.GetDashboardAsync();
+            var items = await HabitService.GetDashboardAsync(ActiveOnly);
             HabitItems = items.ToList();
         }
         catch
@@ -62,6 +75,17 @@ public partial class Habits
             IsLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task SetActiveView(bool activeOnly)
+    {
+        if (ActiveOnly == activeOnly)
+        {
+            return;
+        }
+
+        ActiveOnly = activeOnly;
+        await LoadHabitsAsync();
     }
 
     private void OpenCreate()
@@ -152,5 +176,104 @@ public partial class Habits
         }
 
         StateHasChanged();
+    }
+
+    private void RequestInactivate(HabitDashboardItem habit)
+    {
+        PendingActionHabit = habit;
+        ConfirmErrorMessage = null;
+        ShowInactivateConfirm = true;
+        StateHasChanged();
+    }
+
+    private void RequestReactivate(HabitDashboardItem habit)
+    {
+        PendingActionHabit = habit;
+        ConfirmErrorMessage = null;
+        ShowModal = false;
+        ShowRestoreConfirm = true;
+        StateHasChanged();
+    }
+
+    private void CancelConfirmation()
+    {
+        if (IsConfirmBusy)
+        {
+            return;
+        }
+
+        ShowInactivateConfirm = false;
+        ShowRestoreConfirm = false;
+        PendingActionHabit = null;
+        ConfirmErrorMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task HandleInactivateConfirmed()
+    {
+        var habit = PendingActionHabit;
+        if (habit is null)
+        {
+            return;
+        }
+
+        IsConfirmBusy = true;
+        ConfirmErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await HabitService.InactivateAsync(habit.Id);
+            ShowInactivateConfirm = false;
+            PendingActionHabit = null;
+            await LoadHabitsAsync();
+        }
+        catch (ApiException ex)
+        {
+            ConfirmErrorMessage = ex.GetErrorMessage() ?? "Unable to inactivate the habit.";
+        }
+        catch
+        {
+            ConfirmErrorMessage = "Unable to reach the server. Please try again.";
+        }
+        finally
+        {
+            IsConfirmBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleRestoreConfirmed()
+    {
+        var habit = PendingActionHabit;
+        if (habit is null)
+        {
+            return;
+        }
+
+        IsConfirmBusy = true;
+        ConfirmErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await HabitService.ReactivateAsync(habit.Id);
+            ShowRestoreConfirm = false;
+            PendingActionHabit = null;
+            await LoadHabitsAsync();
+        }
+        catch (ApiException ex)
+        {
+            ConfirmErrorMessage = ex.GetErrorMessage() ?? "Unable to reactivate the habit.";
+        }
+        catch
+        {
+            ConfirmErrorMessage = "Unable to reach the server. Please try again.";
+        }
+        finally
+        {
+            IsConfirmBusy = false;
+            StateHasChanged();
+        }
     }
 }

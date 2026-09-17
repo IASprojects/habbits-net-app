@@ -16,6 +16,9 @@ public partial class HabitCard
     [Parameter]
     public EventCallback<HabitDashboardItem> OnQuickLog { get; set; }
 
+    [Parameter]
+    public EventCallback<HabitDashboardItem> OnInactivate { get; set; }
+
     private bool IsBusy => _isBusy;
 
     private string StreakLabel

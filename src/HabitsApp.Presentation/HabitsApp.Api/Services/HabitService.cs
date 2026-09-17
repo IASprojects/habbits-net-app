@@ -18,10 +18,10 @@ public sealed class HabitService : IHabitService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<HabitDashboardItemDto>> GetDashboardAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<HabitDashboardItemDto>> GetDashboardAsync(Guid userId, bool activeOnly = true, CancellationToken cancellationToken = default)
     {
         var habits = await _dbContext.Habits
-            .Where(h => !h.IsArchived)
+            .Where(h => h.UserId == userId && h.IsActive == activeOnly)
             .OrderBy(h => h.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
@@ -89,6 +89,14 @@ public sealed class HabitService : IHabitService
                 "The habit was not found or is not accessible.");
         }
 
+        if (!habit.IsActive)
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status409Conflict,
+                "Habit is inactive",
+                "This habit is inactive. Reactivate it before making changes.");
+        }
+
         habit.Title = dto.Title.Trim();
         habit.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         habit.ColorHex = string.IsNullOrWhiteSpace(dto.ColorHex) ? "#4F46E5" : dto.ColorHex;
@@ -110,6 +118,14 @@ public sealed class HabitService : IHabitService
                 StatusCodes.Status404NotFound,
                 "Habit not found",
                 "The habit was not found or is not accessible.");
+        }
+
+        if (!habit.IsActive)
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status409Conflict,
+                "Habit is inactive",
+                "This habit is inactive. Reactivate it before making changes.");
         }
 
         var now = DateTime.UtcNow;
@@ -157,6 +173,53 @@ public sealed class HabitService : IHabitService
         {
             _logger.LogWarning(ex, "Quick log race detected for habit {HabitId} in hour {HourKey}; treating as idempotent.", habitId, hourKey);
         }
+
+        return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
+    }
+
+    public async Task<HabitResult> InactivateAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
+    {
+        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId && h.UserId == userId, cancellationToken);
+        if (habit is null)
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status404NotFound,
+                "Habit not found",
+                "The habit was not found or is not accessible.");
+        }
+
+        if (!habit.IsActive)
+        {
+            return HabitResult.Success(ToDto(habit, 0, 0));
+        }
+
+        habit.IsActive = false;
+        habit.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("User {UserId} inactivated habit {HabitId}.", userId, habitId);
+
+        return HabitResult.Success(ToDto(habit, 0, 0));
+    }
+
+    public async Task<HabitResult> ReactivateAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
+    {
+        var habit = await _dbContext.Habits.FirstOrDefaultAsync(h => h.Id == habitId && h.UserId == userId, cancellationToken);
+        if (habit is null)
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status404NotFound,
+                "Habit not found",
+                "The habit was not found or is not accessible.");
+        }
+
+        habit.IsActive = true;
+        habit.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("User {UserId} reactivated habit {HabitId}.", userId, habitId);
 
         return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
     }
@@ -317,6 +380,7 @@ public sealed class HabitService : IHabitService
             ColorHex = habit.ColorHex,
             Frequency = habit.Frequency,
             TargetCount = habit.TargetCount,
+            IsActive = habit.IsActive,
             CurrentPeriodCount = currentPeriodCount,
             IsCompletedForPeriod = currentPeriodCount >= habit.TargetCount,
             Streak = streak

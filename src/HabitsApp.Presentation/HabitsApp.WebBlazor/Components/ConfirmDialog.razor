@@ -1,0 +1,25 @@
+@if (IsOpen)
+{
+    <div class="modal-overlay" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message" @onclick="Cancel" @onkeydown="HandleKeyDown">
+        <div class="modal confirm-dialog" @onclick:stopPropagation>
+            <div class="modal__head">
+                <h3 id="confirm-dialog-title" class="headline-md">@Title</h3>
+                <button class="modal__close" title="Close" aria-label="Close" @onclick="Cancel" disabled="@IsBusy">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <p id="confirm-dialog-message" class="confirm-dialog__message">@Message</p>
+
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <div class="modal__error">@ErrorMessage</div>
+            }
+
+            <div class="modal__footer">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@IsBusy">Cancel</button>
+                <button type="button" class="btn @(IsWarning ? "btn-warning" : "btn-primary")" @onclick="Confirm" disabled="@IsBusy">@ConfirmLabel</button>
+            </div>
+        </div>
+    </div>
+}
