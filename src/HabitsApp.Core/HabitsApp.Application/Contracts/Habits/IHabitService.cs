@@ -2,7 +2,7 @@ namespace HabitsApp.Application.Contracts.Habits;
 
 public interface IHabitService
 {
-    Task<IReadOnlyList<HabitDashboardItemDto>> GetDashboardAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<HabitDashboardItemDto>> GetDashboardAsync(Guid userId, bool activeOnly = true, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CalendarDayDto>> GetCalendarAsync(
         Guid userId,
@@ -18,6 +18,10 @@ public interface IHabitService
     Task<HabitResult> UpdateAsync(Guid userId, Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken = default);
 
     Task<HabitResult> QuickLogAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default);
+
+    Task<HabitResult> InactivateAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default);
+
+    Task<HabitResult> ReactivateAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default);
 
     Task<HabitResult> ArchiveAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default);
 }

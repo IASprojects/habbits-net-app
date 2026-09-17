@@ -39,7 +39,12 @@ public partial class HabitFormModal
     public EventCallback<HabitFormModel> OnSave { get; set; }
 
     [Parameter]
+    public EventCallback<HabitDashboardItem> OnReactivate { get; set; }
+
+    [Parameter]
     public EventCallback OnClose { get; set; }
+
+    private bool IsReadOnly => Habit is not null && !Habit.IsActive;
 
     protected override void OnParametersSet()
     {
@@ -66,13 +71,37 @@ public partial class HabitFormModal
     }
 
     private void SelectColor(string color)
-        => Form.ColorHex = color;
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        Form.ColorHex = color;
+    }
 
     private void SelectFrequency(string frequency)
-        => Form.Frequency = frequency;
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        Form.Frequency = frequency;
+    }
 
     private async Task HandleValidSubmit(EditContext editContext)
-        => await OnSave.InvokeAsync(Form);
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        await OnSave.InvokeAsync(Form);
+    }
+
+    private async Task HandleReactivateAsync()
+        => await OnReactivate.InvokeAsync(Habit);
 
     private async Task Close()
         => await OnClose.InvokeAsync();

@@ -59,8 +59,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(h => h.Description).HasMaxLength(1000);
             entity.Property(h => h.ColorHex).HasMaxLength(9).IsRequired();
             entity.Property(h => h.TargetCount).IsRequired();
+            entity.Property(h => h.IsActive).IsRequired().HasDefaultValue(true);
             entity.Property(h => h.CreatedAtUtc).IsRequired();
             entity.HasIndex(h => new { h.UserId, h.IsArchived });
+            entity.HasIndex(h => new { h.UserId, h.IsActive });
             entity.HasQueryFilter(h => h.UserId == _currentUserService.UserId);
         });
 

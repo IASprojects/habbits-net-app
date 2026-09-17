@@ -290,14 +290,14 @@ static bool TryGetUserId(ClaimsPrincipal principal, out Guid userId)
 var habitsGroup = app.MapGroup("/api/habits")
     .RequireAuthorization();
 
-habitsGroup.MapGet("/", async (ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+habitsGroup.MapGet("/", async (ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken, bool activeOnly = true) =>
 {
     if (!TryGetUserId(principal, out var userId))
     {
         return Results.Unauthorized();
     }
 
-    var items = await habitService.GetDashboardAsync(userId, cancellationToken);
+    var items = await habitService.GetDashboardAsync(userId, activeOnly, cancellationToken);
     return Results.Ok(items);
 });
 
@@ -378,6 +378,25 @@ habitsGroup.MapPost("/{id:guid}/quick-log", async (Guid id, ClaimsPrincipal prin
         detail: result.ErrorDetail);
 });
 
+habitsGroup.MapPost("/{id:guid}/restore", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
+{
+    if (!TryGetUserId(principal, out var userId))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await habitService.ReactivateAsync(userId, id, cancellationToken);
+    if (result.Succeeded)
+    {
+        return Results.Ok(result.Data);
+    }
+
+    return Results.Problem(
+        statusCode: result.StatusCode ?? StatusCodes.Status404NotFound,
+        title: result.ErrorType,
+        detail: result.ErrorDetail);
+});
+
 habitsGroup.MapDelete("/{id:guid}", async (Guid id, ClaimsPrincipal principal, IHabitService habitService, CancellationToken cancellationToken) =>
 {
     if (!TryGetUserId(principal, out var userId))
@@ -385,7 +404,7 @@ habitsGroup.MapDelete("/{id:guid}", async (Guid id, ClaimsPrincipal principal, I
         return Results.Unauthorized();
     }
 
-    var result = await habitService.ArchiveAsync(userId, id, cancellationToken);
+    var result = await habitService.InactivateAsync(userId, id, cancellationToken);
     if (result.Succeeded)
     {
         return Results.NoContent();

@@ -16,6 +16,8 @@ public sealed class HabitDashboardItemDto
 
     public int TargetCount { get; set; }
 
+    public bool IsActive { get; set; }
+
     public int CurrentPeriodCount { get; set; }
 
     public bool IsCompletedForPeriod { get; set; }

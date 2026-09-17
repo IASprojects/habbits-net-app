@@ -361,6 +361,18 @@ code {
     border-color: rgba(255, 255, 255, 0.3);
 }
 
+.btn-warning {
+    background: rgba(147, 0, 10, 0.3);
+    border-color: rgba(255, 180, 171, 0.35);
+    color: var(--color-error);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+    box-shadow: 0 0 14px rgba(255, 180, 171, 0.35);
+}
+
 .btn-action {
     width: 56px;
     height: 56px;
@@ -1347,6 +1359,12 @@ input:-webkit-autofill:active {
     border-radius: var(--radius-xl);
     overflow: hidden;
     display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.habit-card__row {
+    display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-md);
@@ -1482,6 +1500,39 @@ input:-webkit-autofill:active {
     color: var(--color-primary);
 }
 
+.habit-card__inactivate {
+    align-self: flex-start;
+    padding: 10px var(--space-md);
+    border: 1px solid rgba(255, 180, 171, 0.35);
+    border-radius: 12px;
+    background: rgba(147, 0, 10, 0.18);
+    color: var(--color-error);
+    font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.habit-card__inactivate:hover {
+    background: rgba(147, 0, 10, 0.3);
+    border-color: rgba(255, 180, 171, 0.6);
+}
+
+.habits-view-switch {
+    width: 100%;
+}
+
+.habits-view-switch .segment__btn {
+    flex: 1;
+}
+
+.segment__btn--danger {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+    box-shadow: 0 0 10px rgba(255, 180, 171, 0.3);
+}
+
 /* ---------- Empty / Loading States ---------- */
 
 .habits-loading {
@@ -1590,6 +1641,12 @@ input:-webkit-autofill:active {
     line-height: 20px;
 }
 
+.confirm-dialog__message {
+    margin: 0 0 var(--space-md);
+    color: var(--color-on-surface-variant);
+    line-height: 24px;
+}
+
 /* ---------- Habit Form ---------- */
 
 .habit-form__field {
@@ -1651,7 +1708,7 @@ input:-webkit-autofill:active {
 }
 
 @media (max-width: 640.98px) {
-    .habit-card {
+    .habit-card__row {
         flex-direction: column;
         align-items: stretch;
         gap: var(--space-md);
