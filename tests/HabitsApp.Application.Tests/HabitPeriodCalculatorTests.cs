@@ -136,4 +136,65 @@ public class HabitPeriodCalculatorTests
         Assert.Equal(new DateTime(2026, 7, 1, 4, 0, 0, DateTimeKind.Utc), start);
         Assert.Equal(new DateTime(2026, 8, 1, 4, 0, 0, DateTimeKind.Utc), end);
     }
+
+    [Theory]
+    [InlineData("2026-08-19T04:59:59Z", DayPeriod.Night)]
+    [InlineData("2026-08-19T05:00:00Z", DayPeriod.Morning)]
+    [InlineData("2026-08-19T11:59:59Z", DayPeriod.Morning)]
+    [InlineData("2026-08-19T12:00:00Z", DayPeriod.Afternoon)]
+    [InlineData("2026-08-19T17:59:59Z", DayPeriod.Afternoon)]
+    [InlineData("2026-08-19T18:00:00Z", DayPeriod.Night)]
+    [InlineData("2026-08-20T00:00:00Z", DayPeriod.Night)]
+    public void GetDayPeriod_ReturnsExpectedPeriod(string utc, DayPeriod expected)
+    {
+        var now = DateTime.Parse(utc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+        Assert.Equal(expected, HabitPeriodCalculator.GetDayPeriod(TimeZoneInfo.Utc, now));
+    }
+
+    [Fact]
+    public void GetDayPeriod_IsTimeZoneAware_AcrossMidnight()
+    {
+        var utc = new DateTime(2026, 8, 20, 1, 30, 0, DateTimeKind.Utc);
+
+        Assert.Equal(DayPeriod.Night, HabitPeriodCalculator.GetDayPeriod(TimeZoneInfo.Utc, utc));
+        Assert.Equal(DayPeriod.Night, HabitPeriodCalculator.GetDayPeriod(NewYork, utc));
+        Assert.Equal(DayPeriod.Morning, HabitPeriodCalculator.GetDayPeriod(TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo"), utc));
+        Assert.Equal(DayPeriod.Afternoon, HabitPeriodCalculator.GetDayPeriod(TimeZoneInfo.FindSystemTimeZoneById("Pacific/Auckland"), utc));
+    }
+
+    [Theory]
+    [InlineData(DayPeriod.Morning, new DayPeriod[] { DayPeriod.Morning, DayPeriod.Any, DayPeriod.Afternoon, DayPeriod.Night })]
+    [InlineData(DayPeriod.Afternoon, new DayPeriod[] { DayPeriod.Afternoon, DayPeriod.Any, DayPeriod.Morning, DayPeriod.Night })]
+    [InlineData(DayPeriod.Night, new DayPeriod[] { DayPeriod.Night, DayPeriod.Any, DayPeriod.Afternoon, DayPeriod.Morning })]
+    public void GetDisplayOrder_ReturnsExpectedOrder(DayPeriod current, DayPeriod[] expected)
+    {
+        Assert.Equal(expected, HabitPeriodCalculator.GetDisplayOrder(current));
+    }
+
+    [Fact]
+    public void GetDisplayOrder_DayPeriodAny_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => HabitPeriodCalculator.GetDisplayOrder(DayPeriod.Any));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(DayPeriod.Any)]
+    public void GetDisplayRank_NormalizesNullToAny(DayPeriod? period)
+    {
+        var anyRank = HabitPeriodCalculator.GetDisplayRank(DayPeriod.Any, DayPeriod.Morning);
+
+        Assert.Equal(anyRank, HabitPeriodCalculator.GetDisplayRank(period, DayPeriod.Morning));
+    }
+
+    [Theory]
+    [InlineData(DayPeriod.Morning, DayPeriod.Morning, 0)]
+    [InlineData(DayPeriod.Any, DayPeriod.Morning, 1)]
+    [InlineData(DayPeriod.Afternoon, DayPeriod.Morning, 2)]
+    [InlineData(DayPeriod.Night, DayPeriod.Morning, 3)]
+    public void GetDisplayRank_ReturnsRankInCurrentOrder(DayPeriod period, DayPeriod current, int expected)
+    {
+        Assert.Equal(expected, HabitPeriodCalculator.GetDisplayRank(period, current));
+    }
 }

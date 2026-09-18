@@ -1300,6 +1300,27 @@ input:-webkit-autofill:active {
     color: var(--color-on-surface-variant);
 }
 
+.period-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: var(--glass-modal-fill);
+    border: 1px solid var(--glass-modal-border);
+    color: var(--color-on-surface);
+    font-family: var(--font-family);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.period-badge__icon {
+    font-size: 18px;
+    color: var(--color-primary);
+}
+
 .momentum-ring {
     position: relative;
     width: 48px;
@@ -1374,6 +1395,11 @@ input:-webkit-autofill:active {
     opacity: 0.6;
 }
 
+.habit-card--emphasized {
+    background: linear-gradient(135deg, rgba(78, 222, 163, 0.08), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(78, 222, 163, 0.25);
+}
+
 .accent-bar {
     position: absolute;
     left: 0;
@@ -1429,6 +1455,32 @@ input:-webkit-autofill:active {
     font-size: 14px;
     line-height: 20px;
     color: var(--color-on-surface-variant);
+}
+
+.habit-card__period {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 2px 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(78, 222, 163, 0.12);
+    color: var(--color-primary-fixed);
+    font-family: var(--font-family);
+    font-size: var(--label-caps-size);
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.habit-card__period .material-symbols-outlined {
+    font-size: 14px;
+}
+
+.habit-card__period--any {
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    border: 1px solid var(--color-outline-variant);
 }
 
 .habit-card__actions {

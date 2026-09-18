@@ -12,6 +12,8 @@ public sealed class HabitDashboardItem
 
     public string Frequency { get; set; } = "Daily";
 
+    public string? Period { get; set; }
+
     public int TargetCount { get; set; }
 
     public bool IsActive { get; set; }

@@ -70,8 +70,8 @@ public partial class Calendar
     {
         try
         {
-            var active = (await HabitService.GetDashboardAsync(true)).ToList();
-            var inactive = (await HabitService.GetDashboardAsync(false)).ToList();
+            var active = (await HabitService.GetDashboardAsync(true)).Habits.ToList();
+            var inactive = (await HabitService.GetDashboardAsync(false)).Habits.ToList();
             habits = active;
             habits.AddRange(inactive);
         }

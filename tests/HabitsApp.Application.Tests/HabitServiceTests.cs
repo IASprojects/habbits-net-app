@@ -7,6 +7,7 @@ using HabitsApp.Infrastructure.Abstractions;
 using HabitsApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 
 namespace HabitsApp.Application.Tests;
 
@@ -34,6 +35,12 @@ public class HabitServiceTests
         return context;
     }
 
+    private static HabitService CreateHabitService(ApplicationDbContext context)
+        => new(context, TimeProvider.System, NullLogger<HabitService>.Instance);
+
+    private static HabitService CreateHabitService(ApplicationDbContext context, TimeProvider time)
+        => new(context, time, NullLogger<HabitService>.Instance);
+
     private static ApplicationDbContext CreateScopedContext(string dbName, Guid scopedUserId)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -49,7 +56,7 @@ public class HabitServiceTests
     public async Task CreateAsync_AddsHabitWithOwnershipAndCreatedAt()
     {
         using var context = CreateContext(Guid.NewGuid().ToString());
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
 
         var result = await service.CreateAsync(UserId, new CreateHabitDto
         {
@@ -106,8 +113,9 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(1, item.CurrentPeriodCount);
@@ -142,8 +150,9 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(1, item.CurrentPeriodCount);
@@ -168,7 +177,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
 
         var first = await service.QuickLogAsync(UserId, habit.Id);
         var second = await service.QuickLogAsync(UserId, habit.Id);
@@ -214,7 +223,7 @@ public class HabitServiceTests
         }));
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -241,7 +250,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var first = await service.QuickLogAsync(UserId, habit.Id);
         var second = await service.QuickLogAsync(UserId, habit.Id);
 
@@ -286,7 +295,7 @@ public class HabitServiceTests
         }));
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -329,7 +338,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -357,7 +366,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
@@ -393,7 +402,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -420,7 +429,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
 
         var first = await service.QuickLogAsync(UserId, habit.Id);
         var second = await service.QuickLogAsync(UserId, habit.Id);
@@ -472,7 +481,7 @@ public class HabitServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -500,7 +509,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
         {
             Title = "Tampered",
@@ -531,7 +540,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.ArchiveAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
@@ -556,7 +565,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
         {
             Title = "New Title",
@@ -591,7 +600,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.ArchiveAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -601,8 +610,8 @@ public class HabitServiceTests
         Assert.True(archived.IsActive);
 
         var dashboard = await service.GetDashboardAsync(UserId);
-        Assert.Single(dashboard);
-        Assert.True(Assert.Single(dashboard).IsActive);
+        Assert.Single(dashboard.Habits);
+        Assert.True(Assert.Single(dashboard.Habits).IsActive);
     }
 
     [Fact]
@@ -651,7 +660,7 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), null);
 
         Assert.Equal(2, days.Count);
@@ -701,7 +710,7 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), red.Id);
 
         var day = Assert.Single(days);
@@ -734,7 +743,7 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var days = await service.GetCalendarAsync(UserId, new DateOnly(2026, 2, 1), new DateOnly(2026, 2, 28), null);
 
         var day = Assert.Single(days);
@@ -766,8 +775,9 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(3, item.Streak);
@@ -796,8 +806,9 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(1, item.Streak);
@@ -827,8 +838,9 @@ public class HabitServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(3, item.Streak);
@@ -853,8 +865,9 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         var item = Assert.Single(items);
         Assert.Equal(0, item.Streak);
@@ -888,8 +901,9 @@ public class HabitServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         Assert.Single(items);
         Assert.True(Assert.Single(items).IsActive);
@@ -923,8 +937,9 @@ public class HabitServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId, false);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId, false);
+        var items = dashboard.Habits;
 
         Assert.Single(items);
         var item = Assert.Single(items);
@@ -949,8 +964,9 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
-        var items = await service.GetDashboardAsync(UserId);
+        var service = CreateHabitService(context);
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var items = dashboard.Habits;
 
         Assert.Empty(items);
     }
@@ -964,7 +980,7 @@ public class HabitServiceTests
         Assert.NotNull(entity);
         Assert.False(entity.GetProperty("IsActive").IsNullable);
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.CreateAsync(UserId, new CreateHabitDto
         {
             Title = "Meditate",
@@ -1005,7 +1021,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.InactivateAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -1046,7 +1062,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var first = await service.InactivateAsync(UserId, habit.Id);
         var updatedAtAfterFirst = (await context.Habits.SingleAsync()).UpdatedAtUtc;
 
@@ -1081,7 +1097,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.InactivateAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
@@ -1122,7 +1138,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.ReactivateAsync(UserId, habit.Id);
 
         Assert.True(result.Succeeded);
@@ -1167,7 +1183,7 @@ public class HabitServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.ReactivateAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
@@ -1198,7 +1214,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
         {
             Title = "Tampered",
@@ -1230,7 +1246,7 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
@@ -1256,11 +1272,315 @@ public class HabitServiceTests
         context.Habits.Add(habit);
         await context.SaveChangesAsync();
 
-        var service = new HabitService(context, NullLogger<HabitService>.Instance);
+        var service = CreateHabitService(context);
         var result = await service.QuickLogAsync(UserId, habit.Id);
 
         Assert.False(result.Succeeded);
         Assert.Equal(409, result.StatusCode);
         Assert.Equal(0, await context.HabitLogs.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateAsync_PersistsPeriod()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var service = CreateHabitService(context);
+
+        var result = await service.CreateAsync(UserId, new CreateHabitDto
+        {
+            Title = "Meditate",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Morning,
+            TargetCount = 1
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(DayPeriod.Morning, result.Data!.Period);
+        Assert.Equal(DayPeriod.Morning, (await context.Habits.SingleAsync()).Period);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LeavesPeriodNull_WhenAny()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var service = CreateHabitService(context);
+
+        var result = await service.CreateAsync(UserId, new CreateHabitDto
+        {
+            Title = "Meditate",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.Data!.Period);
+        Assert.Null((await context.Habits.SingleAsync()).Period);
+    }
+
+    [Fact]
+    public async Task CreateAsync_UndefinedPeriod_ReturnsBadRequest()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var service = CreateHabitService(context);
+
+        var result = await service.CreateAsync(UserId, new CreateHabitDto
+        {
+            Title = "Meditate",
+            Frequency = FrequencyType.Daily,
+            Period = (DayPeriod)999,
+            TargetCount = 1
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(400, result.StatusCode);
+        Assert.Equal(0, await context.Habits.CountAsync());
+    }
+
+    [Fact]
+    public async Task UpdateAsync_PersistsPeriod()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Old Title",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context);
+        var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
+        {
+            Title = "New Title",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Night,
+            TargetCount = 1
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(DayPeriod.Night, result.Data!.Period);
+        Assert.Equal(DayPeriod.Night, (await context.Habits.SingleAsync()).Period);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UndefinedPeriod_ReturnsBadRequest_WithoutApplyingChanges()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Old Title",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        context.Habits.Add(habit);
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context);
+        var result = await service.UpdateAsync(UserId, habit.Id, new UpdateHabitDto
+        {
+            Title = "Tampered",
+            Frequency = FrequencyType.Daily,
+            Period = (DayPeriod)999,
+            TargetCount = 1
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(400, result.StatusCode);
+        Assert.Equal("Old Title", (await context.Habits.SingleAsync()).Title);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_ReturnsCurrentPeriodInRootAndPeriodInEachItem()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 8, 19, 9, 0, 0, DateTimeKind.Utc);
+
+        context.Habits.Add(new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Morning jog",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Morning,
+            TargetCount = 1,
+            CreatedAtUtc = now
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 9, 0, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+
+        Assert.Equal(DayPeriod.Morning, dashboard.CurrentPeriod);
+        var item = Assert.Single(dashboard.Habits);
+        Assert.Equal(DayPeriod.Morning, item.Period);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_EmptyDashboard_ReturnsRootResponseWithCurrentPeriod()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 20, 0, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+
+        Assert.Empty(dashboard.Habits);
+        Assert.Equal(DayPeriod.Night, dashboard.CurrentPeriod);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_OrdersHabits_ByPeriodRankThenCreatedAtAscending()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 8, 19, 14, 0, 0, DateTimeKind.Utc);
+
+        context.Habits.AddRange(
+            new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Night worker",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Night,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddHours(-10)
+        },
+        new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Afternoon run",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Afternoon,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddHours(-3)
+        },
+        new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Morning stretch",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Morning,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddHours(-1)
+        },
+        new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Read",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddHours(-2)
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 14, 0, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var titles = dashboard.Habits.Select(h => h.Title).ToArray();
+
+        Assert.Equal(DayPeriod.Afternoon, dashboard.CurrentPeriod);
+        Assert.Equal(
+            new[] { "Afternoon run", "Read", "Morning stretch", "Night worker" },
+            titles);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_NullPeriod_SortsAsAny_WithSameTieBreak()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 8, 19, 14, 0, 0, DateTimeKind.Utc);
+
+        context.Habits.AddRange(
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Any explicit",
+                Frequency = FrequencyType.Daily,
+                Period = DayPeriod.Any,
+                TargetCount = 1,
+                CreatedAtUtc = now.AddHours(-1)
+            },
+            new Habit
+            {
+                Id = Guid.NewGuid(),
+                UserId = UserId,
+                Title = "Null period",
+                Frequency = FrequencyType.Daily,
+                TargetCount = 1,
+                CreatedAtUtc = now
+            });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 14, 0, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+        var titles = dashboard.Habits.Select(h => h.Title).ToArray();
+
+        Assert.Equal(new[] { "Any explicit", "Null period" }, titles);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_TieBreak_WithinCategory_IsCreatedAtUtcAscending()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        var now = new DateTime(2026, 8, 19, 14, 0, 0, DateTimeKind.Utc);
+
+        context.Habits.AddRange(
+            new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Older",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Night,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddDays(-2)
+        },
+        new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Newer",
+            Frequency = FrequencyType.Daily,
+            Period = DayPeriod.Night,
+            TargetCount = 1,
+            CreatedAtUtc = now.AddDays(-1)
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 14, 0, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+
+        Assert.Equal(new[] { "Older", "Newer" }, dashboard.Habits.Select(h => h.Title));
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_IsTimeZoneAware_UsesUsersLocalPeriod()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+
+        context.Users.Add(new ApplicationUser
+        {
+            Id = UserId,
+            UserName = "a@b.com",
+            Email = "a@b.com",
+            TimeZoneId = "America/New_York"
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 20, 1, 30, 0, TimeSpan.Zero)));
+        var dashboard = await service.GetDashboardAsync(UserId);
+
+        Assert.Equal(DayPeriod.Night, dashboard.CurrentPeriod);
     }
 }

@@ -30,6 +30,7 @@ builder.Services.AddScoped<IDatabaseHealthService, DatabaseHealthService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IHabitService, HabitService>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Configure ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -91,7 +92,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddValidation();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false)));
 
 builder.Services.AddProblemDetails();
 

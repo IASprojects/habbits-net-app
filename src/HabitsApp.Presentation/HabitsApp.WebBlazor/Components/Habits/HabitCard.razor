@@ -1,10 +1,14 @@
-<div class="glass-panel habit-card @(Habit.IsCompletedForPeriod ? "habit-card--completed" : "")">
+<div class="glass-panel habit-card @(Habit.IsCompletedForPeriod ? "habit-card--completed" : "") @(IsCurrentPeriod ? "habit-card--emphasized" : "")">
     <div class="accent-bar" style="background: @Habit.ColorHex; box-shadow: 0 0 12px @GetGlowColor(Habit.ColorHex);"></div>
 
     <div class="habit-card__row">
         <div class="habit-card__info">
             <div class="habit-card__meta">
                 <span class="chip" style="background: @GetChipBackground(Habit.ColorHex); color: @Habit.ColorHex;">@Habit.Frequency</span>
+                <span class="habit-card__period @(Habit.Period is null || Habit.Period == "Any" ? "habit-card__period--any" : "")">
+                    <span class="material-symbols-outlined">@PeriodIcon</span>
+                    @(Habit.Period ?? "Any")
+                </span>
                 <span class="habit-card__streak">
                     <span class="material-symbols-outlined">local_fire_department</span>
                     @StreakLabel

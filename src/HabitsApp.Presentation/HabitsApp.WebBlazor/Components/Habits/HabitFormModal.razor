@@ -58,6 +58,19 @@
                 </div>
 
                 <div class="habit-form__field">
+                    <label class="field-label">Time of day</label>
+                    <div class="habit-form__segmented">
+                        @foreach (var period in Periods)
+                        {
+                            <button type="button"
+                                    class="habit-form__segment @(Form.Period == period ? "habit-form__segment--selected" : "")"
+                                    disabled="@IsReadOnly"
+                                    @onclick="() => SelectPeriod(period)">@period</button>
+                        }
+                    </div>
+                </div>
+
+                <div class="habit-form__field">
                     <label class="field-label" for="habit-target">Target per period</label>
                     <InputNumber id="habit-target" class="field" @bind-Value="Form.TargetCount" disabled="@IsReadOnly" />
                     <ValidationMessage For="@(() => Form.TargetCount)" />

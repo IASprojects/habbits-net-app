@@ -1,6 +1,7 @@
 using HabitsApp.Application.Contracts.Habits;
 using HabitsApp.Application.Services;
 using HabitsApp.Domain.Entities;
+using HabitsApp.Domain.Enums;
 using HabitsApp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -10,37 +11,40 @@ namespace HabitsApp.Api.Services;
 public sealed class HabitService : IHabitService
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly TimeProvider _time;
     private readonly ILogger<HabitService> _logger;
 
-    public HabitService(ApplicationDbContext dbContext, ILogger<HabitService> logger)
+    public HabitService(ApplicationDbContext dbContext, TimeProvider time, ILogger<HabitService> logger)
     {
         _dbContext = dbContext;
+        _time = time;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<HabitDashboardItemDto>> GetDashboardAsync(Guid userId, bool activeOnly = true, CancellationToken cancellationToken = default)
+    public async Task<DashboardResponseDto> GetDashboardAsync(Guid userId, bool activeOnly = true, CancellationToken cancellationToken = default)
     {
+        var now = _time.GetUtcNow().UtcDateTime;
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        var currentPeriod = HabitPeriodCalculator.GetDayPeriod(tz, now);
+
         var habits = await _dbContext.Habits
             .Where(h => h.UserId == userId && h.IsActive == activeOnly)
-            .OrderBy(h => h.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
-        if (habits.Count == 0)
-        {
-            return [];
-        }
+        var orderedHabits = habits
+            .OrderBy(h => HabitPeriodCalculator.GetDisplayRank(h.Period, currentPeriod))
+            .ThenBy(h => h.CreatedAtUtc)
+            .ToList();
 
-        var habitIds = habits.Select(h => h.Id).ToArray();
+        var habitIds = orderedHabits.Select(h => h.Id).ToArray();
         var logs = await _dbContext.HabitLogs
             .Where(l => habitIds.Contains(l.HabitId))
             .ToListAsync(cancellationToken);
 
-        var now = DateTime.UtcNow;
-        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
         var logsByHabit = logs.ToLookup(l => l.HabitId);
-        var items = new List<HabitDashboardItemDto>(habits.Count);
+        var items = new List<HabitDashboardItemDto>(orderedHabits.Count);
 
-        foreach (var habit in habits)
+        foreach (var habit in orderedHabits)
         {
             var habitLogs = logsByHabit[habit.Id].Select(l => l.CompletedAtUtc).ToList();
             var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
@@ -52,11 +56,23 @@ public sealed class HabitService : IHabitService
             items.Add(ToDto(habit, currentPeriodCount, streak));
         }
 
-        return items;
+        return new DashboardResponseDto
+        {
+            CurrentPeriod = currentPeriod,
+            Habits = items
+        };
     }
 
     public async Task<HabitResult> CreateAsync(Guid userId, CreateHabitDto dto, CancellationToken cancellationToken = default)
     {
+        if (dto.Period is not null && !Enum.IsDefined(typeof(DayPeriod), dto.Period.Value))
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status400BadRequest,
+                "Invalid period",
+                "The habit period is not a valid value.");
+        }
+
         var habit = new Habit
         {
             Id = Guid.NewGuid(),
@@ -65,9 +81,10 @@ public sealed class HabitService : IHabitService
             Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim(),
             ColorHex = string.IsNullOrWhiteSpace(dto.ColorHex) ? "#4F46E5" : dto.ColorHex,
             Frequency = dto.Frequency,
+            Period = dto.Period,
             TargetCount = dto.TargetCount,
             IsArchived = false,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = _time.GetUtcNow().UtcDateTime
         };
 
         _dbContext.Habits.Add(habit);
@@ -97,12 +114,21 @@ public sealed class HabitService : IHabitService
                 "This habit is inactive. Reactivate it before making changes.");
         }
 
+        if (dto.Period is not null && !Enum.IsDefined(typeof(DayPeriod), dto.Period.Value))
+        {
+            return HabitResult.Failure(
+                StatusCodes.Status400BadRequest,
+                "Invalid period",
+                "The habit period is not a valid value.");
+        }
+
         habit.Title = dto.Title.Trim();
         habit.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         habit.ColorHex = string.IsNullOrWhiteSpace(dto.ColorHex) ? "#4F46E5" : dto.ColorHex;
         habit.Frequency = dto.Frequency;
+        habit.Period = dto.Period;
         habit.TargetCount = dto.TargetCount;
-        habit.UpdatedAtUtc = DateTime.UtcNow;
+        habit.UpdatedAtUtc = _time.GetUtcNow().UtcDateTime;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -128,7 +154,7 @@ public sealed class HabitService : IHabitService
                 "This habit is inactive. Reactivate it before making changes.");
         }
 
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
         var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
         var hourKey = HabitPeriodCalculator.GetHourKey(now);
@@ -194,7 +220,7 @@ public sealed class HabitService : IHabitService
         }
 
         habit.IsActive = false;
-        habit.UpdatedAtUtc = DateTime.UtcNow;
+        habit.UpdatedAtUtc = _time.GetUtcNow().UtcDateTime;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -215,7 +241,7 @@ public sealed class HabitService : IHabitService
         }
 
         habit.IsActive = true;
-        habit.UpdatedAtUtc = DateTime.UtcNow;
+        habit.UpdatedAtUtc = _time.GetUtcNow().UtcDateTime;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -227,7 +253,7 @@ public sealed class HabitService : IHabitService
     public async Task<DateOnly> GetLocalTodayAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
-        return DateOnly.FromDateTime(HabitPeriodCalculator.GetLocalNow(tz, DateTime.UtcNow));
+        return DateOnly.FromDateTime(HabitPeriodCalculator.GetLocalNow(tz, _time.GetUtcNow().UtcDateTime));
     }
 
     public async Task<HabitResult> ArchiveAsync(Guid userId, Guid habitId, CancellationToken cancellationToken = default)
@@ -242,7 +268,7 @@ public sealed class HabitService : IHabitService
         }
 
         habit.IsArchived = true;
-        habit.UpdatedAtUtc = DateTime.UtcNow;
+        habit.UpdatedAtUtc = _time.GetUtcNow().UtcDateTime;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -302,7 +328,7 @@ public sealed class HabitService : IHabitService
 
     private async Task<HabitDashboardItemDto> BuildDashboardItemAsync(Guid userId, Habit habit, CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
+        var now = _time.GetUtcNow().UtcDateTime;
         var tz = await ResolveTimeZoneAsync(habit.UserId, cancellationToken);
         var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
         var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, tz, now);
@@ -379,6 +405,7 @@ public sealed class HabitService : IHabitService
             Description = habit.Description,
             ColorHex = habit.ColorHex,
             Frequency = habit.Frequency,
+            Period = habit.Period,
             TargetCount = habit.TargetCount,
             IsActive = habit.IsActive,
             CurrentPeriodCount = currentPeriodCount,

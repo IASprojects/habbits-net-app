@@ -4,7 +4,7 @@ namespace HabitsApp.WebBlazor.Services;
 
 public interface IHabitService
 {
-    Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
+    Task<HabitDashboardResponse> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<CalendarDay>> GetCalendarAsync(
         DateOnly start,

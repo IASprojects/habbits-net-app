@@ -7,6 +7,11 @@
         <div>
             <p class="label-caps dashboard-head__eyebrow">Welcome back,</p>
             <h1 class="dashboard-head__greeting">Hello, @FirstName</h1>
+
+            <div class="period-badge">
+                <span class="material-symbols-outlined period-badge__icon">@CurrentPeriodIcon</span>
+                <span class="period-badge__label">@CurrentPeriodLabel</span>
+            </div>
         </div>
 
         @if (ActiveOnly)
@@ -63,7 +68,7 @@
             <div class="habits-list">
                 @foreach (var habit in HabitItems)
                 {
-                    <HabitCard Habit="@habit" OnEdit="@OpenEdit" OnQuickLog="@HandleQuickLog" />
+                    <HabitCard Habit="@habit" CurrentPeriod="@CurrentPeriod" OnEdit="@OpenEdit" OnQuickLog="@HandleQuickLog" />
                 }
             </div>
         }

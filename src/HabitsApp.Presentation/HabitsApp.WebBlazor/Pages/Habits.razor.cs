@@ -11,6 +11,8 @@ public partial class Habits
 {
     private List<HabitDashboardItem> HabitItems { get; set; } = [];
 
+    private HabitDashboardResponse? Data { get; set; }
+
     private bool IsLoading { get; set; } = true;
 
     private bool ActiveOnly { get; set; } = true;
@@ -24,6 +26,24 @@ public partial class Habits
     private string FirstName { get; set; } = "there";
 
     private string? ErrorMessage { get; set; }
+
+    private string CurrentPeriod => Data?.CurrentPeriod ?? "Morning";
+
+    private string CurrentPeriodLabel
+        => CurrentPeriod switch
+        {
+            "Morning" => "Good Morning",
+            "Afternoon" => "Good Afternoon",
+            _ => "Good Evening"
+        };
+
+    private string CurrentPeriodIcon
+        => CurrentPeriod switch
+        {
+            "Morning" => "wb_sunny",
+            "Afternoon" => "wb_twilight",
+            _ => "nightlight"
+        };
 
     private string? ModalErrorMessage { get; set; }
 
@@ -63,8 +83,9 @@ public partial class Habits
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             FirstName = authState.User.FindFirst("given_name")?.Value ?? "there";
 
-            var items = await HabitService.GetDashboardAsync(ActiveOnly);
-            HabitItems = items.ToList();
+            var response = await HabitService.GetDashboardAsync(ActiveOnly);
+            Data = response;
+            HabitItems = response.Habits.ToList();
         }
         catch
         {
@@ -126,6 +147,7 @@ public partial class Habits
                     Description = model.Description,
                     ColorHex = model.ColorHex,
                     Frequency = model.Frequency,
+                    Period = model.Period == "Any" ? null : model.Period,
                     TargetCount = model.TargetCount
                 });
             }
@@ -137,6 +159,7 @@ public partial class Habits
                     Description = model.Description,
                     ColorHex = model.ColorHex,
                     Frequency = model.Frequency,
+                    Period = model.Period == "Any" ? null : model.Period,
                     TargetCount = model.TargetCount
                 });
             }

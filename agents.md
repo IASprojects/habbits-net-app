@@ -99,6 +99,14 @@ habits-net-app/
 2. Native Validation: Prefer .NET 10 built-in Minimal API validation over custom middleware.
 3. EF Core 10: Use Complex Types for value objects and LINQ `LeftJoin`/`RightJoin` operators where appropriate.
 
+### Current Habits Contracts
+
+- `DayPeriod` enum (`HabitsApp.Domain.Enums`): `Morning, Afternoon, Night, Any`. `Habit.Period` is nullable; `null` is normalized to `Any` when computing rank.
+- `HabitPeriodCalculator.GetDayPeriod(tz, utcNow)`: Morning 05:00–11:59 local, Afternoon 12:00–17:59, Night 18:00–04:59 (crosses midnight). Never returns `Any`.
+- `HabitPeriodCalculator.GetDisplayOrder(current)` / `GetDisplayRank(period, current)`: explicit per-period ordering — current period first, then `Any`, then the remaining periods. `GetDisplayOrder(Any)` throws `ArgumentOutOfRangeException`.
+- `HabitService.GetDashboardAsync` returns root `DashboardResponseDto { CurrentPeriod, Habits[] }`; `CurrentPeriod` is NOT repeated per item. Items are ordered in memory by `GetDisplayRank` then `CreatedAtUtc` ascending.
+- `HabitService` uses an injectable `TimeProvider` (registered as `TimeProvider.System` in the API) instead of `DateTime.UtcNow`.
+
 ### Frontend & UI Rules (Blazor WebAssembly & Tailwind CSS / MudBlazor)
 
 1. Mobile-First & Responsive Layout: All Razor components MUST be designed mobile-first and adapt cleanly to all screen sizes (mobile, tablet, desktop) using fluid containers and responsive utility classes (e.g., flex-col md:flex-row, grid-cols-1 md:grid-cols-3).

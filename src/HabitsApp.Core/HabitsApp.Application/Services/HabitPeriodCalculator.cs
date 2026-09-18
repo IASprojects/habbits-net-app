@@ -8,6 +8,47 @@ public static class HabitPeriodCalculator
     public static DateTime GetLocalNow(TimeZoneInfo tz, DateTime utcNow)
         => TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
 
+    public static DayPeriod GetDayPeriod(TimeZoneInfo tz, DateTime utcNow)
+    {
+        var localNow = GetLocalNow(tz, utcNow);
+
+        return localNow.Hour switch
+        {
+            >= 5 and <= 11 => DayPeriod.Morning,
+            >= 12 and <= 17 => DayPeriod.Afternoon,
+            _ => DayPeriod.Night
+        };
+    }
+
+    public static IReadOnlyList<DayPeriod> GetDisplayOrder(DayPeriod current)
+    {
+        return current switch
+        {
+            DayPeriod.Morning => [DayPeriod.Morning, DayPeriod.Any, DayPeriod.Afternoon, DayPeriod.Night],
+            DayPeriod.Afternoon => [DayPeriod.Afternoon, DayPeriod.Any, DayPeriod.Morning, DayPeriod.Night],
+            DayPeriod.Night => [DayPeriod.Night, DayPeriod.Any, DayPeriod.Afternoon, DayPeriod.Morning],
+            _ => throw new ArgumentOutOfRangeException(nameof(current), current, "GetDisplayOrder requires a concrete day period.")
+        };
+    }
+
+    public static int GetDisplayRank(DayPeriod? period, DayPeriod current)
+    {
+        var effective = period ?? DayPeriod.Any;
+        var order = GetDisplayOrder(current);
+        var rank = 0;
+        foreach (var candidate in order)
+        {
+            if (candidate == effective)
+            {
+                return rank;
+            }
+
+            rank++;
+        }
+
+        return -1;
+    }
+
     public static DateTime GetWindowStartUtc(FrequencyType frequency, DateTime utcNow)
         => GetWindowStartUtc(frequency, TimeZoneInfo.Utc, utcNow);
 

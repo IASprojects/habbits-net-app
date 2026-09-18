@@ -13,6 +13,8 @@ public sealed class HabitFormModel
 
     public string Frequency { get; set; } = "Daily";
 
+    public string Period { get; set; } = "Any";
+
     [Range(1, 999, ErrorMessage = "Target count must be at least 1.")]
     public int TargetCount { get; set; } = 1;
 }

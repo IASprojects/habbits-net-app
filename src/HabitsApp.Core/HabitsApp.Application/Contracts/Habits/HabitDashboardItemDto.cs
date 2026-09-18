@@ -14,6 +14,8 @@ public sealed class HabitDashboardItemDto
 
     public FrequencyType Frequency { get; set; }
 
+    public DayPeriod? Period { get; set; }
+
     public int TargetCount { get; set; }
 
     public bool IsActive { get; set; }

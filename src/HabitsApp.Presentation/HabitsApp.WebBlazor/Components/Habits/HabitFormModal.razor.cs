@@ -19,6 +19,8 @@ public partial class HabitFormModal
 
     private static readonly string[] Frequencies = ["Daily", "Weekly", "Monthly"];
 
+    private static readonly string[] Periods = ["Morning", "Afternoon", "Night", "Any"];
+
     private HabitFormModel Form { get; set; } = new();
 
     private bool _wasOpen;
@@ -72,6 +74,7 @@ public partial class HabitFormModal
                 Description = Habit.Description ?? string.Empty,
                 ColorHex = Habit.ColorHex,
                 Frequency = Habit.Frequency,
+                Period = Habit.Period ?? "Any",
                 TargetCount = Habit.TargetCount
             };
     }
@@ -94,6 +97,16 @@ public partial class HabitFormModal
         }
 
         Form.Frequency = frequency;
+    }
+
+    private void SelectPeriod(string period)
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        Form.Period = period;
     }
 
     private async Task HandleValidSubmit(EditContext editContext)

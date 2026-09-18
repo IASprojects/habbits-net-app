@@ -10,5 +10,7 @@ public sealed class UpdateHabitRequest
 
     public string Frequency { get; set; } = "Daily";
 
+    public string? Period { get; set; }
+
     public int TargetCount { get; set; } = 1;
 }

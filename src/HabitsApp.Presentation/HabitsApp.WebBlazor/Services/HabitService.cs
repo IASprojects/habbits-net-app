@@ -13,10 +13,10 @@ public sealed class HabitService : IHabitService
         _httpClient = httpClient;
     }
 
-    public async Task<IReadOnlyList<HabitDashboardItem>> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
+    public async Task<HabitDashboardResponse> GetDashboardAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync($"/api/habits?activeOnly={activeOnly}", cancellationToken);
-        return await HandleResponseAsync<IReadOnlyList<HabitDashboardItem>>(response, cancellationToken);
+        return await HandleResponseAsync<HabitDashboardResponse>(response, cancellationToken);
     }
 
     public async Task<IReadOnlyList<CalendarDay>> GetCalendarAsync(

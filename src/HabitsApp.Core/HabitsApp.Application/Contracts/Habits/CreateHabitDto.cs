@@ -16,6 +16,8 @@ public sealed class CreateHabitDto
 
     public FrequencyType Frequency { get; set; } = FrequencyType.Daily;
 
+    public DayPeriod? Period { get; set; }
+
     [Range(1, 999, ErrorMessage = "Target count must be at least 1.")]
     public int TargetCount { get; set; } = 1;
 }

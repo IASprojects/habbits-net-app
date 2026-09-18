@@ -11,12 +11,27 @@ public partial class HabitCard
     public HabitDashboardItem Habit { get; set; } = default!;
 
     [Parameter]
+    public string CurrentPeriod { get; set; } = "Morning";
+
+    [Parameter]
     public EventCallback<HabitDashboardItem> OnEdit { get; set; }
 
     [Parameter]
     public EventCallback<HabitDashboardItem> OnQuickLog { get; set; }
 
     private bool IsBusy => _isBusy;
+
+    private bool IsCurrentPeriod
+        => Habit.Period is not null && Habit.Period != "Any" && Habit.Period == CurrentPeriod;
+
+    private string PeriodIcon
+        => Habit.Period switch
+        {
+            "Morning" => "wb_sunny",
+            "Afternoon" => "wb_twilight",
+            "Night" => "nightlight",
+            _ => "schedule"
+        };
 
     private string StreakLabel
         => Habit.Streak > 0 ? $"{Habit.Streak} day streak" : "No streak";

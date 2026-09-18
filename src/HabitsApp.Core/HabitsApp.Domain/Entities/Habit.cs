@@ -16,6 +16,8 @@ public sealed class Habit
 
     public FrequencyType Frequency { get; set; } = FrequencyType.Daily;
 
+    public DayPeriod? Period { get; set; }
+
     public int TargetCount { get; set; } = 1;
 
     public bool IsActive { get; set; } = true;
