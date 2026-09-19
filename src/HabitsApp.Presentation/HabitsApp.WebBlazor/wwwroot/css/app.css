@@ -126,14 +126,21 @@ body {
     line-height: 24px;
     letter-spacing: 0;
     color: var(--color-on-surface);
-    background:
-        radial-gradient(1200px 800px at 85% -10%, rgba(78, 222, 163, 0.08), transparent 60%),
-        radial-gradient(1000px 700px at -10% 110%, rgba(192, 193, 255, 0.06), transparent 60%),
-        radial-gradient(900px 600px at 50% 120%, rgba(255, 185, 95, 0.04), transparent 60%),
-        var(--color-surface);
+    background: var(--color-surface);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+}
+
+.app-background {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(1200px 800px at 85% -10%, rgba(78, 222, 163, 0.08), transparent 60%),
+        radial-gradient(1000px 700px at -10% 110%, rgba(192, 193, 255, 0.06), transparent 60%),
+        radial-gradient(900px 600px at 50% 120%, rgba(255, 185, 95, 0.04), transparent 60%);
 }
 
 h1:focus {
