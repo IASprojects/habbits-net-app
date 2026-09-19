@@ -155,8 +155,9 @@ public sealed class HabitService : IHabitService
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
-        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, now);
-        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, now);
+        var tz = await ResolveTimeZoneAsync(userId, cancellationToken);
+        var windowStart = HabitPeriodCalculator.GetWindowStartUtc(habit.Frequency, tz, now);
+        var windowEnd = HabitPeriodCalculator.GetWindowEndUtc(habit.Frequency, tz, now);
         var hourKey = HabitPeriodCalculator.GetHourKey(now);
 
         var currentPeriodCount = await _dbContext.HabitLogs
@@ -179,7 +180,7 @@ public sealed class HabitService : IHabitService
             return HabitResult.Success(await BuildDashboardItemAsync(userId, habit, cancellationToken));
         }
 
-        var periodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, now);
+        var periodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, tz, now);
 
         _dbContext.HabitLogs.Add(new HabitLog
         {

@@ -491,6 +491,96 @@ public class HabitServiceTests
     }
 
     [Fact]
+    public async Task QuickLogAsync_AllowsSingleDailyRep_WhenUtcLogFallsOnPreviousLocalDay()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        context.Users.Add(new ApplicationUser
+        {
+            Id = UserId,
+            UserName = "a@b.com",
+            Email = "a@b.com",
+            TimeZoneId = "America/New_York"
+        });
+
+        var utcNow = new DateTime(2026, 8, 19, 10, 0, 0, DateTimeKind.Utc);
+        var seedUtc = utcNow.AddHours(-8);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Drink Water",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = utcNow
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = seedUtc,
+            PeriodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, seedUtc),
+            HourKey = HabitPeriodCalculator.GetHourKey(seedUtc)
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 10, 0, 0, TimeSpan.Zero)));
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(2, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
+    }
+
+    [Fact]
+    public async Task QuickLogAsync_StillIdempotent_WhenLogFallsWithinUsersLocalDay()
+    {
+        using var context = CreateContext(Guid.NewGuid().ToString());
+        context.Users.Add(new ApplicationUser
+        {
+            Id = UserId,
+            UserName = "a@b.com",
+            Email = "a@b.com",
+            TimeZoneId = "America/New_York"
+        });
+
+        var utcNow = new DateTime(2026, 8, 19, 6, 0, 0, DateTimeKind.Utc);
+        var seedUtc = utcNow.AddMinutes(-30);
+
+        var habit = new Habit
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            Title = "Drink Water",
+            Frequency = FrequencyType.Daily,
+            TargetCount = 1,
+            CreatedAtUtc = utcNow
+        };
+        context.Habits.Add(habit);
+        context.HabitLogs.Add(new HabitLog
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            UserId = UserId,
+            CompletedAtUtc = seedUtc,
+            PeriodKey = HabitPeriodCalculator.GetPeriodKey(habit.Frequency, seedUtc),
+            HourKey = HabitPeriodCalculator.GetHourKey(seedUtc)
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateHabitService(context, new FakeTimeProvider(new DateTimeOffset(2026, 8, 19, 6, 0, 0, TimeSpan.Zero)));
+        var result = await service.QuickLogAsync(UserId, habit.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Data!.CurrentPeriodCount);
+        Assert.True(result.Data.IsCompletedForPeriod);
+        Assert.Equal(1, await context.HabitLogs.CountAsync(l => l.HabitId == habit.Id));
+    }
+
+    [Fact]
     public async Task UpdateAsync_ReturnsNotFound_ForOtherUsersHabit()
     {
         using var context = CreateContext(Guid.NewGuid().ToString());
