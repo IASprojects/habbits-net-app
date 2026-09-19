@@ -29,9 +29,9 @@
     <section class="stack-md">
         <h2 class="dashboard-section__title">Today's Focus</h2>
 
-        <div class="segment habits-view-switch" role="group" aria-label="Habit status">
-            <button class="segment__btn @(ActiveOnly ? "segment__btn--active" : "")" @onclick="() => SetActiveView(true)">🟢 Activos</button>
-            <button class="segment__btn @(!ActiveOnly ? "segment__btn--active segment__btn--danger" : "")" @onclick="() => SetActiveView(false)">🔴 Inactivos</button>
+        <div class="segment habits-view-switch" role="group" aria-label="Habit status" style="width: 25%;">
+            <button class="segment__btn @(ActiveOnly ? "segment__btn--active" : "")" @onclick="() => SetActiveView(true)">🟢 Active</button>
+            <button class="segment__btn @(!ActiveOnly ? "segment__btn--active segment__btn--danger" : "")" @onclick="() => SetActiveView(false)">🔴 Inactive</button>
         </div>
 
         @if (!string.IsNullOrWhiteSpace(ErrorMessage) && !ShowModal)
